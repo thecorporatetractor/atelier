@@ -1,0 +1,13 @@
+{
+  "name": "atelier",
+  "owner": {
+    "name": "thecorporatetractor"
+  },
+  "description": "atelier: a workspace for working with Claude Code",
+  "plugins": [
+    {
+      "name": "atelier",
+      "source": "./"
+    }
+  ]
+}
