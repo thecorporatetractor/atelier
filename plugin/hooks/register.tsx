@@ -1,5 +1,4 @@
-import { atom, read, update } from 'claude-code'
-import type { EngineInterface, ModelUsage, PluginOptions, Register, Timer } from 'claude-code'
+import type { EngineInterface, PluginState, ModelUsage, PluginOptions, Register, Timer } from 'claude-code'
 
 import type {
   AgentNode,
@@ -101,43 +100,347 @@ const RATE_WINDOW = 50
 const CACHE_TTL_MS = 5 * 60_000
 const SPEND_DAYS = 62
 
-const tasksAtom = atom({ plugin: 'atelier', key: 'tasks' } as const, [])
-const rootAtom = atom({ plugin: 'atelier', key: 'rootId' } as const, null)
-const agentsAtom = atom({ plugin: 'atelier', key: 'agents' } as const, [])
-const usageAtom = atom({ plugin: 'atelier', key: 'usage' } as const, null)
-const feedAtom = atom({ plugin: 'atelier', key: 'feed' } as const, [])
-const currentAtom = atom({ plugin: 'atelier', key: 'current' } as const, null)
-const filesAtom = atom({ plugin: 'atelier', key: 'files' } as const, [])
-const alertsAtom = atom({ plugin: 'atelier', key: 'alerts' } as const, { attention: null, spins: [], drift: null })
-const viewAtom = atom({ plugin: 'atelier', key: 'view' } as const, {
+// The sidebar's state: each value read and written through $.state with
+// its literal reference, the way the directory's review reads the code.
+type Held = PluginState['atelier']
+
+const TASKS = { plugin: 'atelier', key: 'tasks' } as const
+
+async function readTasks($: EngineInterface): Promise<Held['tasks']> {
+  return (await $.state.get(TASKS)).value ?? []
+}
+
+async function updateTasks($: EngineInterface, change: (value: Held['tasks']) => Held['tasks']): Promise<Held['tasks']> {
+  for (;;) {
+    const held = await $.state.get(TASKS)
+    const value = change(held.value ?? [])
+    if ((await $.state.set(TASKS, value, { ifVersion: held.version })).isSet) return value
+  }
+}
+
+const ROOT = { plugin: 'atelier', key: 'rootId' } as const
+
+async function readRoot($: EngineInterface): Promise<Held['rootId']> {
+  return (await $.state.get(ROOT)).value ?? null
+}
+
+async function updateRoot($: EngineInterface, change: (value: Held['rootId']) => Held['rootId']): Promise<Held['rootId']> {
+  for (;;) {
+    const held = await $.state.get(ROOT)
+    const value = change(held.value ?? null)
+    if ((await $.state.set(ROOT, value, { ifVersion: held.version })).isSet) return value
+  }
+}
+
+const AGENTS = { plugin: 'atelier', key: 'agents' } as const
+
+async function readAgents($: EngineInterface): Promise<Held['agents']> {
+  return (await $.state.get(AGENTS)).value ?? []
+}
+
+async function updateAgents($: EngineInterface, change: (value: Held['agents']) => Held['agents']): Promise<Held['agents']> {
+  for (;;) {
+    const held = await $.state.get(AGENTS)
+    const value = change(held.value ?? [])
+    if ((await $.state.set(AGENTS, value, { ifVersion: held.version })).isSet) return value
+  }
+}
+
+const USAGE = { plugin: 'atelier', key: 'usage' } as const
+
+async function readUsage($: EngineInterface): Promise<Held['usage']> {
+  return (await $.state.get(USAGE)).value ?? null
+}
+
+async function updateUsage($: EngineInterface, change: (value: Held['usage']) => Held['usage']): Promise<Held['usage']> {
+  for (;;) {
+    const held = await $.state.get(USAGE)
+    const value = change(held.value ?? null)
+    if ((await $.state.set(USAGE, value, { ifVersion: held.version })).isSet) return value
+  }
+}
+
+const FEED = { plugin: 'atelier', key: 'feed' } as const
+
+async function readFeed($: EngineInterface): Promise<Held['feed']> {
+  return (await $.state.get(FEED)).value ?? []
+}
+
+async function updateFeed($: EngineInterface, change: (value: Held['feed']) => Held['feed']): Promise<Held['feed']> {
+  for (;;) {
+    const held = await $.state.get(FEED)
+    const value = change(held.value ?? [])
+    if ((await $.state.set(FEED, value, { ifVersion: held.version })).isSet) return value
+  }
+}
+
+const CURRENT = { plugin: 'atelier', key: 'current' } as const
+
+async function readCurrent($: EngineInterface): Promise<Held['current']> {
+  return (await $.state.get(CURRENT)).value ?? null
+}
+
+async function updateCurrent($: EngineInterface, change: (value: Held['current']) => Held['current']): Promise<Held['current']> {
+  for (;;) {
+    const held = await $.state.get(CURRENT)
+    const value = change(held.value ?? null)
+    if ((await $.state.set(CURRENT, value, { ifVersion: held.version })).isSet) return value
+  }
+}
+
+const FILES = { plugin: 'atelier', key: 'files' } as const
+
+async function readFiles($: EngineInterface): Promise<Held['files']> {
+  return (await $.state.get(FILES)).value ?? []
+}
+
+async function updateFiles($: EngineInterface, change: (value: Held['files']) => Held['files']): Promise<Held['files']> {
+  for (;;) {
+    const held = await $.state.get(FILES)
+    const value = change(held.value ?? [])
+    if ((await $.state.set(FILES, value, { ifVersion: held.version })).isSet) return value
+  }
+}
+
+const ALERTS = { plugin: 'atelier', key: 'alerts' } as const
+
+async function readAlerts($: EngineInterface): Promise<Held['alerts']> {
+  return (await $.state.get(ALERTS)).value ?? { attention: null, spins: [], drift: null }
+}
+
+async function updateAlerts($: EngineInterface, change: (value: Held['alerts']) => Held['alerts']): Promise<Held['alerts']> {
+  for (;;) {
+    const held = await $.state.get(ALERTS)
+    const value = change(held.value ?? { attention: null, spins: [], drift: null })
+    if ((await $.state.set(ALERTS, value, { ifVersion: held.version })).isSet) return value
+  }
+}
+
+const VIEW = { plugin: 'atelier', key: 'view' } as const
+
+async function readView($: EngineInterface): Promise<Held['view']> {
+  return (await $.state.get(VIEW)).value ?? {
+  isCompact: false,
+  isNoteOpen: false,
+  usageTab: 'limits',
+  isDetail: false,
+}
+}
+
+async function updateView($: EngineInterface, change: (value: Held['view']) => Held['view']): Promise<Held['view']> {
+  for (;;) {
+    const held = await $.state.get(VIEW)
+    const value = change(held.value ?? {
   isCompact: false,
   isNoteOpen: false,
   usageTab: 'limits',
   isDetail: false,
 })
-const observerAtom = atom({ plugin: 'atelier', key: 'observer' } as const, {
+    if ((await $.state.set(VIEW, value, { ifVersion: held.version })).isSet) return value
+  }
+}
+
+const OBSERVER = { plugin: 'atelier', key: 'observer' } as const
+
+async function readObserver($: EngineInterface): Promise<Held['observer']> {
+  return (await $.state.get(OBSERVER)).value ?? {
+  calls: 0,
+  inputTokens: 0,
+  outputTokens: 0,
+  lastKind: null,
+  dropped: 0,
+}
+}
+
+async function updateObserver($: EngineInterface, change: (value: Held['observer']) => Held['observer']): Promise<Held['observer']> {
+  for (;;) {
+    const held = await $.state.get(OBSERVER)
+    const value = change(held.value ?? {
   calls: 0,
   inputTokens: 0,
   outputTokens: 0,
   lastKind: null,
   dropped: 0,
 })
-const timelineAtom = atom({ plugin: 'atelier', key: 'timeline' } as const, [])
-const confidenceAtom = atom({ plugin: 'atelier', key: 'confidence' } as const, {
+    if ((await $.state.set(OBSERVER, value, { ifVersion: held.version })).isSet) return value
+  }
+}
+
+const TIMELINE = { plugin: 'atelier', key: 'timeline' } as const
+
+async function readTimeline($: EngineInterface): Promise<Held['timeline']> {
+  return (await $.state.get(TIMELINE)).value ?? []
+}
+
+async function updateTimeline($: EngineInterface, change: (value: Held['timeline']) => Held['timeline']): Promise<Held['timeline']> {
+  for (;;) {
+    const held = await $.state.get(TIMELINE)
+    const value = change(held.value ?? [])
+    if ((await $.state.set(TIMELINE, value, { ifVersion: held.version })).isSet) return value
+  }
+}
+
+const CONFIDENCE = { plugin: 'atelier', key: 'confidence' } as const
+
+async function readConfidence($: EngineInterface): Promise<Held['confidence']> {
+  return (await $.state.get(CONFIDENCE)).value ?? {
+  untestedEdits: 0,
+  testsPassed: null,
+  typecheckClean: null,
+}
+}
+
+async function updateConfidence($: EngineInterface, change: (value: Held['confidence']) => Held['confidence']): Promise<Held['confidence']> {
+  for (;;) {
+    const held = await $.state.get(CONFIDENCE)
+    const value = change(held.value ?? {
   untestedEdits: 0,
   testsPassed: null,
   typecheckClean: null,
 })
-const peersAtom = atom({ plugin: 'atelier', key: 'peers' } as const, [])
-const handoffAtom = atom({ plugin: 'atelier', key: 'handoff' } as const, null)
-const searchAtom = atom({ plugin: 'atelier', key: 'search' } as const, null)
-const decisionsAtom = atom({ plugin: 'atelier', key: 'decisions' } as const, [])
-const rateAtom = atom({ plugin: 'atelier', key: 'rate' } as const, { samples: [], peak: 0, sum: 0, count: 0, tokens: 0 })
-const cacheAtom = atom({ plugin: 'atelier', key: 'cache' } as const, { lastHitAt: null, ttlMs: CACHE_TTL_MS, readTokens: 0, inputTokens: 0 })
-const contextAtom = atom({ plugin: 'atelier', key: 'context' } as const, null)
-const spendAtom = atom({ plugin: 'atelier', key: 'spend' } as const, null)
-const statsAtom = atom({ plugin: 'atelier', key: 'stats' } as const, null)
-const agentRatesAtom = atom({ plugin: 'atelier', key: 'agentRates' } as const, {})
+    if ((await $.state.set(CONFIDENCE, value, { ifVersion: held.version })).isSet) return value
+  }
+}
+
+const PEERS = { plugin: 'atelier', key: 'peers' } as const
+
+async function readPeers($: EngineInterface): Promise<Held['peers']> {
+  return (await $.state.get(PEERS)).value ?? []
+}
+
+async function updatePeers($: EngineInterface, change: (value: Held['peers']) => Held['peers']): Promise<Held['peers']> {
+  for (;;) {
+    const held = await $.state.get(PEERS)
+    const value = change(held.value ?? [])
+    if ((await $.state.set(PEERS, value, { ifVersion: held.version })).isSet) return value
+  }
+}
+
+const HANDOFF = { plugin: 'atelier', key: 'handoff' } as const
+
+async function readHandoff($: EngineInterface): Promise<Held['handoff']> {
+  return (await $.state.get(HANDOFF)).value ?? null
+}
+
+async function updateHandoff($: EngineInterface, change: (value: Held['handoff']) => Held['handoff']): Promise<Held['handoff']> {
+  for (;;) {
+    const held = await $.state.get(HANDOFF)
+    const value = change(held.value ?? null)
+    if ((await $.state.set(HANDOFF, value, { ifVersion: held.version })).isSet) return value
+  }
+}
+
+const SEARCH = { plugin: 'atelier', key: 'search' } as const
+
+async function readSearch($: EngineInterface): Promise<Held['search']> {
+  return (await $.state.get(SEARCH)).value ?? null
+}
+
+async function updateSearch($: EngineInterface, change: (value: Held['search']) => Held['search']): Promise<Held['search']> {
+  for (;;) {
+    const held = await $.state.get(SEARCH)
+    const value = change(held.value ?? null)
+    if ((await $.state.set(SEARCH, value, { ifVersion: held.version })).isSet) return value
+  }
+}
+
+const DECISIONS = { plugin: 'atelier', key: 'decisions' } as const
+
+async function readDecisions($: EngineInterface): Promise<Held['decisions']> {
+  return (await $.state.get(DECISIONS)).value ?? []
+}
+
+async function updateDecisions($: EngineInterface, change: (value: Held['decisions']) => Held['decisions']): Promise<Held['decisions']> {
+  for (;;) {
+    const held = await $.state.get(DECISIONS)
+    const value = change(held.value ?? [])
+    if ((await $.state.set(DECISIONS, value, { ifVersion: held.version })).isSet) return value
+  }
+}
+
+const RATE = { plugin: 'atelier', key: 'rate' } as const
+
+async function readRate($: EngineInterface): Promise<Held['rate']> {
+  return (await $.state.get(RATE)).value ?? { samples: [], peak: 0, sum: 0, count: 0, tokens: 0 }
+}
+
+async function updateRate($: EngineInterface, change: (value: Held['rate']) => Held['rate']): Promise<Held['rate']> {
+  for (;;) {
+    const held = await $.state.get(RATE)
+    const value = change(held.value ?? { samples: [], peak: 0, sum: 0, count: 0, tokens: 0 })
+    if ((await $.state.set(RATE, value, { ifVersion: held.version })).isSet) return value
+  }
+}
+
+const CACHE = { plugin: 'atelier', key: 'cache' } as const
+
+async function readCache($: EngineInterface): Promise<Held['cache']> {
+  return (await $.state.get(CACHE)).value ?? { lastHitAt: null, ttlMs: CACHE_TTL_MS, readTokens: 0, inputTokens: 0 }
+}
+
+async function updateCache($: EngineInterface, change: (value: Held['cache']) => Held['cache']): Promise<Held['cache']> {
+  for (;;) {
+    const held = await $.state.get(CACHE)
+    const value = change(held.value ?? { lastHitAt: null, ttlMs: CACHE_TTL_MS, readTokens: 0, inputTokens: 0 })
+    if ((await $.state.set(CACHE, value, { ifVersion: held.version })).isSet) return value
+  }
+}
+
+const CONTEXT = { plugin: 'atelier', key: 'context' } as const
+
+async function readContext($: EngineInterface): Promise<Held['context']> {
+  return (await $.state.get(CONTEXT)).value ?? null
+}
+
+async function updateContext($: EngineInterface, change: (value: Held['context']) => Held['context']): Promise<Held['context']> {
+  for (;;) {
+    const held = await $.state.get(CONTEXT)
+    const value = change(held.value ?? null)
+    if ((await $.state.set(CONTEXT, value, { ifVersion: held.version })).isSet) return value
+  }
+}
+
+const SPEND = { plugin: 'atelier', key: 'spend' } as const
+
+async function readSpend($: EngineInterface): Promise<Held['spend']> {
+  return (await $.state.get(SPEND)).value ?? null
+}
+
+async function updateSpend($: EngineInterface, change: (value: Held['spend']) => Held['spend']): Promise<Held['spend']> {
+  for (;;) {
+    const held = await $.state.get(SPEND)
+    const value = change(held.value ?? null)
+    if ((await $.state.set(SPEND, value, { ifVersion: held.version })).isSet) return value
+  }
+}
+
+const STATS = { plugin: 'atelier', key: 'stats' } as const
+
+async function readStats($: EngineInterface): Promise<Held['stats']> {
+  return (await $.state.get(STATS)).value ?? null
+}
+
+async function updateStats($: EngineInterface, change: (value: Held['stats']) => Held['stats']): Promise<Held['stats']> {
+  for (;;) {
+    const held = await $.state.get(STATS)
+    const value = change(held.value ?? null)
+    if ((await $.state.set(STATS, value, { ifVersion: held.version })).isSet) return value
+  }
+}
+
+const AGENT_RATES = { plugin: 'atelier', key: 'agentRates' } as const
+
+async function readAgentRates($: EngineInterface): Promise<Held['agentRates']> {
+  return (await $.state.get(AGENT_RATES)).value ?? {}
+}
+
+async function updateAgentRates($: EngineInterface, change: (value: Held['agentRates']) => Held['agentRates']): Promise<Held['agentRates']> {
+  for (;;) {
+    const held = await $.state.get(AGENT_RATES)
+    const value = change(held.value ?? {})
+    if ((await $.state.set(AGENT_RATES, value, { ifVersion: held.version })).isSet) return value
+  }
+}
 
 let opt: Options = readOptions({})
 let isPlaced = false
@@ -216,16 +519,16 @@ function rid(prefix: string) {
 }
 
 async function setTasks($: EngineInterface, fn: (list: Task[], rootId: string | null) => Task[]) {
-  const rootId = await read($, rootAtom)
+  const rootId = await readRoot($)
   // A change that changes nothing (a phase already reached) writes nothing.
-  if (isSame(settle(fn(await read($, tasksAtom), rootId)), await read($, tasksAtom))) return
-  await update($, tasksAtom, list => settle(fn(list, rootId)))
+  if (isSame(settle(fn(await readTasks($), rootId)), await readTasks($))) return
+  await updateTasks($, list => settle(fn(list, rootId)))
   isSummaryDirty = true
   startTicker($)
 }
 
 async function editFeed($: EngineInterface, fn: (list: FeedItem[]) => FeedItem[]) {
-  if (liveFeed === undefined) liveFeed = await read($, feedAtom)
+  if (liveFeed === undefined) liveFeed = await readFeed($)
   liveFeed = fn(liveFeed)
   isFeedDirty = true
   schedulePublish($)
@@ -258,24 +561,24 @@ async function publishLive($: EngineInterface) {
   if (isFeedDirty && liveFeed !== undefined) {
     isFeedDirty = false
     const feed = liveFeed
-    await update($, feedAtom, () => feed)
+    await updateFeed($, () => feed)
   }
   if (liveCurrent !== undefined) {
     const current = liveCurrent
     liveCurrent = undefined
-    if (current !== (await read($, currentAtom))) await update($, currentAtom, () => current)
+    if (current !== (await readCurrent($))) await updateCurrent($, () => current)
   }
   if (liveTools.size > 0) {
     const tools = new Map(liveTools)
     liveTools.clear()
-    const agents = await read($, agentsAtom)
-    if (applyCurrentTools(agents, tools) !== agents) await update($, agentsAtom, list => [...applyCurrentTools(list, tools)])
+    const agents = await readAgents($)
+    if (applyCurrentTools(agents, tools) !== agents) await updateAgents($, list => [...applyCurrentTools(list, tools)])
   }
 }
 
 async function addTimeline($: EngineInterface, kind: TimelineEntry['kind'], text: string, feedId?: string) {
   const entry: TimelineEntry = { id: rid('t'), at: nowMs(), kind, text, feedId }
-  await update($, timelineAtom, list => [...list, entry].slice(-TIMELINE_MAX))
+  await updateTimeline($, list => [...list, entry].slice(-TIMELINE_MAX))
 }
 
 async function countObserver($: EngineInterface, usage: ModelUsage | undefined, estimate: number, kind?: string) {
@@ -286,7 +589,7 @@ async function countObserver($: EngineInterface, usage: ModelUsage | undefined, 
       output: usage === undefined ? 4 : usage.output_tokens,
     }
   })
-  await update($, observerAtom, o => ({
+  await updateObserver($, o => ({
     ...o,
     calls: o.calls + 1,
     inputTokens: o.inputTokens + (usage === undefined ? estimate : usage.input_tokens + usage.cache_creation_input_tokens + usage.cache_read_input_tokens),
@@ -306,8 +609,8 @@ function startTicker($: EngineInterface) {
 }
 
 async function stepTicker($: EngineInterface) {
-  const list = await read($, tasksAtom)
-  const agents = await read($, agentsAtom)
+  const list = await readTasks($)
+  const agents = await readAgents($)
   let isMoving = false
   for (const t of list) {
     const was = shown.get(t.id) ?? 0
@@ -346,7 +649,7 @@ async function seed($: EngineInterface, text: string, rootId: string) {
   await countObserver($, undefined, Math.ceil(text.length / 4) + 80, kind)
   if (kind === 'question-or-chat') {
     await setTasks($, list => list.filter(t => t.id !== rootId))
-    await update($, rootAtom, id => (id === rootId ? null : id))
+    await updateRoot($, id => (id === rootId ? null : id))
 
     return
   }
@@ -441,8 +744,8 @@ async function flush($: EngineInterface) {
     const kind = await $.model.classify(lines, ['noise', 'progress', 'new_work', 'blocked'], { model: opt.observerModel })
     await countObserver($, undefined, Math.ceil(lines.length / 4) + 80, kind ?? 'unknown')
     if (kind === undefined || kind === 'noise') return
-    const rootId = await read($, rootAtom)
-    const list = await read($, tasksAtom)
+    const rootId = await readRoot($)
+    const list = await readTasks($)
     const goal = list.find(t => t.id === rootId)?.title ?? '(none)'
     const r = await $.model.complete({
       model: opt.observerModel,
@@ -455,7 +758,7 @@ async function flush($: EngineInterface) {
     await countObserver($, r.usage, 0)
     const diff = r.isAnswered ? parseDiff(r.text) : undefined
     if (diff === undefined) {
-      await update($, observerAtom, o => ({ ...o, dropped: o.dropped + 1 }))
+      await updateObserver($, o => ({ ...o, dropped: o.dropped + 1 }))
 
       return
     }
@@ -476,7 +779,7 @@ async function flush($: EngineInterface) {
 
 async function recordDecisions($: EngineInterface, incoming: DecisionInput[] | undefined, now: number) {
   if (incoming === undefined || incoming.length === 0) return
-  await update($, decisionsAtom, list => applyDecisions(list, incoming, now))
+  await updateDecisions($, list => applyDecisions(list, incoming, now))
   for (const d of incoming) await addTimeline($, 'task', `Decision: ${d.title}${d.chosen !== undefined ? ` (${d.chosen})` : ''}`)
 }
 
@@ -500,7 +803,7 @@ async function decide($: EngineInterface) {
   const lines = decideLines
   decideLines = []
   try {
-    const known = await read($, decisionsAtom)
+    const known = await readDecisions($)
     const r = await $.model.complete({
       model: opt.observerModel,
       system: DECISION_SYSTEM,
@@ -523,12 +826,12 @@ async function checkDrift($: EngineInterface, goal: string, lines: string) {
   const text = `Goal: ${goal}\nRecent activity:\n${lines}`
   const kind = await $.model.classify(text, ['on-task', 'off-task'], { model: opt.observerModel })
   await countObserver($, undefined, Math.ceil(text.length / 4) + 60, kind)
-  await update($, alertsAtom, a => ({ ...a, drift: kind === 'off-task' ? 'May be off-task' : null }))
+  await updateAlerts($, a => ({ ...a, drift: kind === 'off-task' ? 'May be off-task' : null }))
 }
 
 async function reconcile($: EngineInterface, answer: string) {
-  const rootId = await read($, rootAtom)
-  const list = await read($, tasksAtom)
+  const rootId = await readRoot($)
+  const list = await readTasks($)
   if (rootId === null || !opt.isObserverOn) return
   const batch = buffer.splice(0, buffer.length).join('\n')
   const r = await $.model.complete({
@@ -564,14 +867,14 @@ async function refreshUsage($: EngineInterface) {
     costUsd: u.cost?.usd,
     rateLimits: u.rateLimits.map(r => ({ kind: r.kind, percentUsed: r.percentUsed, resetsAt: r.resetsAt })),
   }
-  await update($, usageAtom, () => view)
+  await updateUsage($, () => view)
 }
 
 /** Charges usage to the loop's own work: a subagent's to its task, the main loop's under the root. */
 async function attribute($: EngineInterface, amount: number, agentId?: string) {
   if (amount <= 0) return
-  const rootId = await read($, rootAtom)
-  await update($, tasksAtom, list => {
+  const rootId = await readRoot($)
+  await updateTasks($, list => {
     const id = chargeableFor(list, rootId, agentId)
 
     return list.map(t => (t.id === id ? { ...t, tokens: t.tokens + amount } : t))
@@ -581,15 +884,15 @@ async function attribute($: EngineInterface, amount: number, agentId?: string) {
 // ---------- alerts ----------
 
 async function attention($: EngineInterface, text: string) {
-  await update($, alertsAtom, a => ({ ...a, attention: text }))
+  await updateAlerts($, a => ({ ...a, attention: text }))
   await setTasks($, (list, rootId) => list.map(t => (t.id === rootId && t.status === 'running' ? { ...t, status: 'waiting' as const } : t)))
   $.ui.toast(`Atelier: ${text}`)
 }
 
 async function clearAttention($: EngineInterface) {
-  const a = await read($, alertsAtom)
+  const a = await readAlerts($)
   if (a.attention === null) return
-  await update($, alertsAtom, x => ({ ...x, attention: null }))
+  await updateAlerts($, x => ({ ...x, attention: null }))
   await setTasks($, (list, rootId) => list.map(t => (t.id === rootId && t.status === 'waiting' ? { ...t, status: 'running' as const } : t)))
 }
 
@@ -628,7 +931,7 @@ async function declareUpdate($: EngineInterface, externalId: string, status: str
     )
   })
   if (mapped === 'done') {
-    const done = (await read($, tasksAtom)).find(t => t.externalId === externalId)
+    const done = (await readTasks($)).find(t => t.externalId === externalId)
     if (done !== undefined) await addTimeline($, 'task', `Done: ${done.title}`)
   }
 }
@@ -667,7 +970,7 @@ async function declareTodos($: EngineInterface, todos: readonly { content: strin
 
 async function recordFile($: EngineInterface, path: string, result: unknown, input: Record<string, unknown>) {
   const { added, removed } = patchStats(result, input)
-  await update($, filesAtom, list => {
+  await updateFiles($, list => {
     const was = list.find(f => f.path === path)
     const next: FileStat = {
       path,
@@ -679,14 +982,14 @@ async function recordFile($: EngineInterface, path: string, result: unknown, inp
 
     return [...list.filter(f => f.path !== path), next].slice(-FILES_MAX)
   })
-  const isFirst = (await read($, filesAtom)).find(f => f.path === path)?.edits === 1
+  const isFirst = (await readFiles($)).find(f => f.path === path)?.edits === 1
   stat(d => {
     d.linesAdded = added
     d.linesRemoved = removed
     d.filesEdited = isFirst ? 1 : 0
   })
   if (isFirst) await addTimeline($, 'file', `Touched ${basename(path)}`)
-  await update($, confidenceAtom, c => ({ ...c, untestedEdits: c.untestedEdits + 1, testsPassed: null }))
+  await updateConfidence($, c => ({ ...c, untestedEdits: c.untestedEdits + 1, testsPassed: null }))
 }
 
 async function recordVerify($: EngineInterface, command: string, isOk: boolean) {
@@ -696,7 +999,7 @@ async function recordVerify($: EngineInterface, command: string, isOk: boolean) 
       d.testsFailed = isOk ? 0 : 1
     })
   }
-  await update($, confidenceAtom, (c): Confidence => {
+  await updateConfidence($, (c): Confidence => {
     if (isTypecheckCommand(command)) return { ...c, typecheckClean: isOk }
 
     return { ...c, testsPassed: isOk, untestedEdits: isOk ? 0 : c.untestedEdits, lastPassAt: isOk ? nowMs() : c.lastPassAt }
@@ -712,8 +1015,8 @@ async function recordSpin($: EngineInterface, signature: string, isFailed: boole
       ? a.spins.filter(s => s.signature !== signature)
       : [...a.spins.filter(s => s.signature !== signature), { signature, count: r.count, text: `${warning}: ${text}` }].slice(-3)
   // Most calls change no warning: no write, no redraw.
-  const alerts = await read($, alertsAtom)
-  if (!isSame(spinsOf(alerts), alerts.spins)) await update($, alertsAtom, a => ({ ...a, spins: spinsOf(a) }))
+  const alerts = await readAlerts($)
+  if (!isSame(spinsOf(alerts), alerts.spins)) await updateAlerts($, a => ({ ...a, spins: spinsOf(a) }))
   if (warning !== undefined && r.count === 3) {
     $.ui.toast(`Atelier: ${warning}`)
     await addTimeline($, 'alert', `${warning}: ${text}`)
@@ -783,7 +1086,7 @@ async function commitCheckpoint($: EngineInterface) {
 async function sendNote($: EngineInterface, text: string) {
   if (text.trim() === '') return
   await $.prompt.submit({ text: `Note from the person (via the sidebar): ${text.trim()}` })
-  await update($, viewAtom, v => ({ ...v, isNoteOpen: false }))
+  await updateView($, v => ({ ...v, isNoteOpen: false }))
 }
 
 async function openDiff($: EngineInterface, path: string) {
@@ -800,8 +1103,8 @@ async function publishPeer($: EngineInterface) {
   const now = nowMs()
   if (sessionId === '' || now - lastPeerAt < 10_000) return
   lastPeerAt = now
-  const rootId = await read($, rootAtom)
-  const rootTask = (await read($, tasksAtom)).find(t => t.id === rootId)
+  const rootId = await readRoot($)
+  const rootTask = (await readTasks($)).find(t => t.id === rootId)
   const peer: PeerSession = {
     id: sessionId,
     title: rootTask?.title ?? 'idle',
@@ -825,7 +1128,7 @@ async function loadPeers($: EngineInterface) {
     }
     peers.push(p)
   }
-  await update($, peersAtom, () => peers)
+  await updatePeers($, () => peers)
 }
 
 async function readSummaries($: EngineInterface): Promise<Summary[]> {
@@ -838,9 +1141,9 @@ async function readSummaries($: EngineInterface): Promise<Summary[]> {
 async function saveSummary($: EngineInterface) {
   if (!isSummaryDirty || !opt.isObserverOn || sessionId === '') return
   isSummaryDirty = false
-  const list = await read($, tasksAtom)
+  const list = await readTasks($)
   if (list.length === 0) return
-  const files = (await read($, filesAtom)).map(f => basename(f.path)).join(', ')
+  const files = (await readFiles($)).map(f => basename(f.path)).join(', ')
   const r = await $.model.complete({
     model: opt.observerModel,
     system: SUMMARY_SYSTEM,
@@ -869,7 +1172,7 @@ async function saveSummary($: EngineInterface) {
 async function loadHandoff($: EngineInterface) {
   const all = await readSummaries($)
   const last = all.filter(s => s.root === root && s.sessionId !== sessionId && nowMs() - s.at < 14 * 86_400_000).at(-1)
-  await update($, handoffAtom, () => last ?? null)
+  await updateHandoff($, () => last ?? null)
 }
 
 async function search($: EngineInterface, query: string) {
@@ -880,11 +1183,11 @@ async function search($: EngineInterface, query: string) {
       if (line.toLowerCase().includes(q)) hits.push({ at: s.at, text: line, source: basename(s.root) })
     }
   }
-  for (const t of await read($, tasksAtom)) {
+  for (const t of await readTasks($)) {
     if (t.title.toLowerCase().includes(q)) hits.push({ at: t.updatedAt, text: t.title, source: 'this session' })
   }
   hits.sort((a, b) => b.at - a.at)
-  await update($, searchAtom, () => ({ query, hits: hits.slice(0, 20) }))
+  await updateSearch($, () => ({ query, hits: hits.slice(0, 20) }))
 
   return hits
 }
@@ -892,17 +1195,17 @@ async function search($: EngineInterface, query: string) {
 // ---------- decisions ----------
 
 async function answerDecision($: EngineInterface, id: string, option: string) {
-  const d = (await read($, decisionsAtom)).find(x => x.id === id)
+  const d = (await readDecisions($)).find(x => x.id === id)
   if (d === undefined) return
   await $.prompt.fill({ text: option === '' ? `${d.title}: ` : `${d.title}: go with ${option}.` })
 }
 
 async function revertDecision($: EngineInterface, id: string) {
-  const d = (await read($, decisionsAtom)).find(x => x.id === id)
+  const d = (await readDecisions($)).find(x => x.id === id)
   if (d === undefined) return
   const answer = await $.ui.ask(`Ask Claude to revert "${d.title}: ${d.chosen}"?`, ['Ask Claude', 'Cancel'])
   if (answer !== 'Ask Claude') return
-  await update($, decisionsAtom, list => list.map(x => (x.id === id ? { ...x, isReverted: true } : x)))
+  await updateDecisions($, list => list.map(x => (x.id === id ? { ...x, isReverted: true } : x)))
   await $.prompt.submit({
     text: `Please revert the change from the decision "${d.title}: ${d.chosen}"${d.outsidePlan !== undefined ? ` (${d.outsidePlan})` : ''} and keep to the plan.`,
   })
@@ -911,14 +1214,14 @@ async function revertDecision($: EngineInterface, id: string) {
 // ---------- view toggles, kept across sessions ----------
 
 async function setView($: EngineInterface, fn: (v: ViewState) => ViewState) {
-  const next = await update($, viewAtom, fn)
+  const next = await updateView($, fn)
   await $.store.set('view', { usageTab: next.usageTab, isDetail: next.isDetail, isStats: next.isStats })
 }
 
 async function loadView($: EngineInterface) {
   const saved = (await $.store.get('view')) as Partial<ViewState> | undefined
   if (saved === undefined || typeof saved !== 'object') return
-  await update($, viewAtom, v => ({
+  await updateView($, v => ({
     ...v,
     usageTab: saved.usageTab === 'api' ? ('api' as const) : ('limits' as const),
     isDetail: saved.isDetail === true,
@@ -957,13 +1260,13 @@ async function sampleTick($: EngineInterface) {
 async function pushAgentSamples($: EngineInterface) {
   const by = streamCharsBy
   streamCharsBy = new Map()
-  const known = new Set((await read($, agentsAtom)).map(a => a.id))
+  const known = new Set((await readAgents($)).map(a => a.id))
   for (const [key, n] of by) if (n > 0) sampledBy.add(key)
-  await update($, agentRatesAtom, rates => appendRates(rates, by, known, RATE_MS, RATE_WINDOW))
+  await updateAgentRates($, rates => appendRates(rates, by, known, RATE_MS, RATE_WINDOW))
 }
 
 async function pushSamples($: EngineInterface, rates: number[]) {
-  await update($, rateAtom, r => {
+  await updateRate($, r => {
     const samples = [...r.samples, ...rates].slice(-RATE_WINDOW)
     const live = rates.filter(x => x > 0)
 
@@ -1009,14 +1312,14 @@ async function flushSteps($: EngineInterface) {
     input += t.input
     isHit = isHit || t.isHit
   }
-  await update($, cacheAtom, c => ({
+  await updateCache($, c => ({
     ...c,
     lastHitAt: isHit ? now : c.lastHitAt,
     readTokens: c.readTokens + cacheRead,
     inputTokens: c.inputTokens + input,
   }))
-  await update($, rateAtom, r => ({ ...r, tokens: r.tokens + tokens }))
-  await update($, agentsAtom, list => list.map(a => (batch.has(a.id) ? { ...a, tokens: a.tokens + (batch.get(a.id) as StepTally).tokens } : a)))
+  await updateRate($, r => ({ ...r, tokens: r.tokens + tokens }))
+  await updateAgents($, list => list.map(a => (batch.has(a.id) ? { ...a, tokens: a.tokens + (batch.get(a.id) as StepTally).tokens } : a)))
   for (const [key, t] of batch) await attribute($, t.tokens, key === 'main' ? undefined : key)
 }
 
@@ -1037,13 +1340,13 @@ async function settleTurn($: EngineInterface, agentId: string | undefined, usage
     // What the step hook missed, by the turn's own model; a request when none was seen.
     statTokens(usage.model ?? lastStepModel, usage, seen === 0 ? 1 : 0, share)
     const now = nowMs()
-    await update($, cacheAtom, c => ({
+    await updateCache($, c => ({
       ...c,
       lastHitAt: seen === 0 && usage.cache_read_input_tokens > 0 ? now : c.lastHitAt,
       readTokens: c.readTokens + Math.round(usage.cache_read_input_tokens * share),
       inputTokens: c.inputTokens + Math.round((usage.input_tokens + usage.cache_creation_input_tokens) * share),
     }))
-    await update($, rateAtom, r => ({ ...r, tokens: r.tokens + extra }))
+    await updateRate($, r => ({ ...r, tokens: r.tokens + extra }))
   }
   if (agentId === undefined && sampledTokens === 0 && usage.output_tokens > 0 && durationMs > 0) {
     const n = Math.max(1, Math.min(RATE_WINDOW, Math.round(durationMs / RATE_MS)))
@@ -1055,7 +1358,7 @@ async function settleTurn($: EngineInterface, agentId: string | undefined, usage
   if (!sampledBy.has(key) && usage.output_tokens > 0 && durationMs > 0) {
     const n = Math.max(1, Math.min(RATE_WINDOW, Math.round(durationMs / RATE_MS)))
     const rate = usage.output_tokens / (durationMs / 1000)
-    await update($, agentRatesAtom, rates => ({ ...rates, [key]: [...(rates[key] ?? []), ...Array.from({ length: n }, () => rate)].slice(-RATE_WINDOW) }))
+    await updateAgentRates($, rates => ({ ...rates, [key]: [...(rates[key] ?? []), ...Array.from({ length: n }, () => rate)].slice(-RATE_WINDOW) }))
   }
   sampledBy.delete(key)
 
@@ -1104,13 +1407,13 @@ async function refreshContext($: EngineInterface, plain?: { tokens?: number; win
     debugLog($, `atelier: session.usage({ breakdown }) failed: ${String(err).slice(0, 200)}; the heatmap is an estimate`)
   }
   if (split === undefined) {
-    const u = await read($, usageAtom)
+    const u = await readUsage($)
     const used = plain?.tokens ?? u?.contextTokens
     const window = plain?.window ?? u?.window ?? 0
     if (used === undefined || window <= 0) return
     split = { used, window, system: 0, tools: 0, chat: used, isEstimate: true }
   }
-  const prev = await read($, contextAtom)
+  const prev = await readContext($)
   const used = split.used
   // A drop means compaction: file reads in context start over.
   if (prev !== null && used < prev.used) readChars = 0
@@ -1128,7 +1431,7 @@ async function refreshContext($: EngineInterface, plain?: { tokens?: number; win
     perTurn: grew > 0 ? [...(prev?.perTurn ?? []), grew].slice(-24) : (prev?.perTurn ?? []),
     isEstimate: split.isEstimate,
   }
-  await update($, contextAtom, () => view)
+  await updateContext($, () => view)
 }
 
 type SpendBook = Record<string, { total: number; byModel: Record<string, number> }>
@@ -1168,7 +1471,7 @@ async function flushSpend($: EngineInterface) {
     byModel,
     daily: Array.from({ length: 14 }, (_, i) => book[dayKey(now - (13 - i) * 86_400_000)]?.total ?? 0),
   }
-  await update($, spendAtom, () => view)
+  await updateSpend($, () => view)
 }
 
 // ---------- agents the mod did not see spawn ----------
@@ -1195,13 +1498,13 @@ function scheduleSync($: EngineInterface) {
 async function syncAgents($: EngineInterface) {
   lastSyncAt = nowMs()
   const list = await $.agent.list()
-  const before = await read($, agentsAtom)
+  const before = await readAgents($)
   const merged = mergeAgentList(before, list, nowMs())
   const nodes = trimAgents(merged.nodes)
   const shape = (ns: readonly AgentNode[]) => ns.map(n => `${n.id}:${n.status}`)
   if (merged.started.length === 0 && isSame(shape(nodes), shape(before))) return
   for (const id of merged.started) lastActivity.set(id, nowMs())
-  await update($, agentsAtom, () => trimAgents(mergeAgentList(before, list, nowMs()).nodes))
+  await updateAgents($, () => trimAgents(mergeAgentList(before, list, nowMs()).nodes))
   for (const id of merged.started) {
     const info = list.find(a => a.id === id)
     const title = info?.description || info?.type || 'agent'
@@ -1209,10 +1512,10 @@ async function syncAgents($: EngineInterface) {
     const spawn = pendingSpawns.find(p => p.description === info?.description && p.type === info?.type)
     if (spawn !== undefined) {
       pendingSpawns = pendingSpawns.filter(p => p !== spawn)
-      await update($, agentsAtom, nodes => nodes.map(n => (n.id === id ? { ...n, model: n.model || spawn.model, isBackground: spawn.isBackground } : n)))
+      await updateAgents($, nodes => nodes.map(n => (n.id === id ? { ...n, model: n.model || spawn.model, isBackground: spawn.isBackground } : n)))
       await addTimeline($, 'task', `Agent: ${title}`)
     }
-    const isNew = agentTaskOf(await read($, tasksAtom), id) === undefined
+    const isNew = agentTaskOf(await readTasks($), id) === undefined
     const now = nowMs()
     await setTasks($, tasks => openAgentTask(tasks, id, title, now))
     if (isNew && opt.isObserverOn && title !== '') void seedAgent($, id, spawn?.prompt ?? title).catch(() => {})
@@ -1220,7 +1523,7 @@ async function syncAgents($: EngineInterface) {
   // Agents the list calls finished close their tasks, as their turn.complete would.
   for (const n of merged.nodes) {
     if (n.id === 'main' || (n.status !== 'done' && n.status !== 'error')) continue
-    const own = agentTaskOf(await read($, tasksAtom), n.id)
+    const own = agentTaskOf(await readTasks($), n.id)
     if (own !== undefined && own.status === 'running') {
       const now = nowMs()
       await setTasks($, tasks => finishAgentTask(tasks, n.id, n.status === 'error', now))
@@ -1272,7 +1575,7 @@ async function flushStats($: EngineInterface) {
     days = pruneDays({ ...days, [day]: addDay(days[day] ?? emptyDay(), delta) })
     await $.store.set('stats', { days })
   }
-  await update($, statsAtom, () => summarizeStats(days, nowMs()))
+  await updateStats($, () => summarizeStats(days, nowMs()))
 }
 
 /** The first stats write carries over the spend book kept before stats existed. */
@@ -1307,8 +1610,8 @@ function startStep($: EngineInterface, agentId: string | undefined, model: strin
   if (agentId !== undefined) {
     lastActivity.set(agentId, nowMs())
     // Read first: most steps find the model already set and write nothing.
-    void read($, agentsAtom)
-      .then(list => (list.some(a => a.id === agentId && a.model === '') ? update($, agentsAtom, l => l.map(a => (a.id === agentId && a.model === '' ? { ...a, model } : a))) : undefined))
+    void readAgents($)
+      .then(list => (list.some(a => a.id === agentId && a.model === '') ? updateAgents($, l => l.map(a => (a.id === agentId && a.model === '' ? { ...a, model } : a))) : undefined))
       .catch(() => {})
   }
   streamCount += 1
@@ -1345,7 +1648,7 @@ async function startCall($: EngineInterface, input: Record<string, unknown>, too
   setCurrent($, text, agentId, text)
   if (agentId !== undefined) lastActivity.set(agentId, nowMs())
   if (agentId !== undefined && nowMs() - lastSyncAt > 1_000) {
-    const isKnown = (await read($, agentsAtom)).some(a => a.id === agentId && a.status === 'running')
+    const isKnown = (await readAgents($)).some(a => a.id === agentId && a.status === 'running')
     if (!isKnown) void syncAgents($).catch(() => {})
   }
   if (tool === 'AskUserQuestion') {
@@ -1395,6 +1698,46 @@ async function endCall($: EngineInterface, toolUseId: string, isFailed: boolean,
   scheduleFlush($)
 }
 
+// ---------- /atelier ----------
+
+async function runAtelierCommand($: EngineInterface, args: string, columns: number) {
+  const [verb = '', ...rest] = args.trim().split(/\s+/)
+  if (verb === 'close') {
+    await $.ui.close({ id: PANE })
+    $.ui.toast('Atelier closed')
+
+    return
+  }
+  if (verb === 'compact') {
+    await updateView($, v => ({ ...v, isCompact: !v.isCompact }))
+    await open($, columns)
+
+    return
+  }
+  if (verb === 'stats') {
+    await flushStats($)
+    await setView($, v => ({ ...v, isStats: v.isStats !== true, isDetail: false }))
+    await open($, columns)
+
+    return
+  }
+  if (verb === 'search') {
+    const query = rest.join(' ')
+    if (query === '') {
+      $.ui.toast('Atelier: /atelier search <words>')
+
+      return
+    }
+    // The hits show in the sidebar's search panel.
+    const hits = await search($, query)
+    await open($, columns)
+    $.ui.toast(hits.length === 0 ? `Atelier: no matches for "${query}"` : `Atelier: ${hits.length} match${hits.length === 1 ? '' : 'es'} in the sidebar`)
+
+    return
+  }
+  await open($, columns)
+}
+
 // ---------- the hooks ----------
 
 export const register: Register = (on, options) => {
@@ -1406,7 +1749,8 @@ export const register: Register = (on, options) => {
       description: 'Sidebar: open, close, compact, stats, or search <query>',
     })
     sessionId = await $.session.id()
-    root = await $.session.root()
+    // The project folder as the event hands it, rather than read from the machine.
+    root = e.cwd
     sessionStartedAt = (await $.session.usage()).startedAt
     void loadView($).catch(() => {})
     void flushSpend($).catch(() => {})
@@ -1420,16 +1764,16 @@ export const register: Register = (on, options) => {
       })
     }
     const view = await $.state.get({ plugin: 'atelier', key: 'view' })
-    if (view.version === 0 && opt.isCompactDefault) await update($, viewAtom, v => ({ ...v, isCompact: true }))
+    if (view.version === 0 && opt.isCompactDefault) await updateView($, v => ({ ...v, isCompact: true }))
     const model = await $.session.model()
-    await update($, agentsAtom, list =>
+    await updateAgents($, list =>
       list.some(a => a.id === 'main')
         ? list
         : [{ id: 'main', type: 'main', model, description: 'Main agent', status: 'idle', tokens: 0, startedAt: nowMs(), isBackground: false } satisfies AgentNode, ...list],
     )
     void open($).catch(() => {})
     // The hand-off card is off until it has a better place; summaries are still saved.
-    await update($, handoffAtom, () => null)
+    await updateHandoff($, () => null)
     void loadPeers($).catch(() => {})
     peersTimer?.cancel()
     peersTimer = $.clock.every(20_000, () => {
@@ -1450,7 +1794,7 @@ export const register: Register = (on, options) => {
     if (!isPerson) return next(e)
     lastPhase = undefined
     void clearAttention($).catch(() => {})
-    void update($, decisionsAtom, list => (list.some(d => d.isPending) ? answerPending(list, e.text) : list)).catch(() => {})
+    void updateDecisions($, list => (list.some(d => d.isPending) ? answerPending(list, e.text) : list)).catch(() => {})
     noteForDecisions($, `Person said: ${e.text}`)
     if (!looksTrivial(e.text)) {
       const id = rid('r')
@@ -1461,7 +1805,7 @@ export const register: Register = (on, options) => {
         ...list.map(t => (t.parentId === null && t.agentId === undefined && t.status === 'running' ? { ...t, status: 'pending' as const } : t)),
         newTask({ id, title, status: 'running', confidence: 0, order: now }, now),
       ])
-      await update($, rootAtom, () => id)
+      await updateRoot($, () => id)
       if (opt.isObserverOn) void seed($, e.text, id).catch(() => {})
     }
     return next(e)
@@ -1471,7 +1815,7 @@ export const register: Register = (on, options) => {
     turnId = e.turnId
     isTurnRunning = true
     turnStartedAt = nowMs()
-    await update($, agentsAtom, list => list.map(a => (a.id === 'main' ? { ...a, status: 'running' as const, startedAt: nowMs() } : a)))
+    await updateAgents($, list => list.map(a => (a.id === 'main' ? { ...a, status: 'running' as const, startedAt: nowMs() } : a)))
     startTicker($)
 
     return next(e)
@@ -1514,7 +1858,7 @@ export const register: Register = (on, options) => {
     const used = await settleTurn($, e.agentId, e.usage, e.durationMs)
     if (e.agentId !== undefined) {
       const agentId = e.agentId
-      await update($, agentsAtom, list =>
+      await updateAgents($, list =>
         list.map(a =>
           a.id === agentId
             ? { ...a, status: e.reason === 'error' ? ('error' as const) : ('done' as const), endedAt: nowMs(), tokens: a.tokens + used, currentTool: undefined }
@@ -1523,7 +1867,7 @@ export const register: Register = (on, options) => {
       )
       await attribute($, used, agentId)
       const isError = e.reason === 'error' || e.isAborted
-      const node = (await read($, agentsAtom)).find(a => a.id === agentId)
+      const node = (await readAgents($)).find(a => a.id === agentId)
       if (node !== undefined) {
         stat(d => {
           d.agents = { [node.type]: { spawns: 0, tokens: node.tokens, ms: nowMs() - node.startedAt, fails: isError ? 1 : 0 } }
@@ -1545,7 +1889,7 @@ export const register: Register = (on, options) => {
     void flushStats($).catch(() => {})
     void refreshContext($).catch(() => {})
     void flushSpend($).catch(() => {})
-    await update($, agentsAtom, list =>
+    await updateAgents($, list =>
       list.map(a => (a.id === 'main' ? { ...a, status: 'idle' as const, tokens: a.tokens + used, currentTool: undefined } : a)),
     )
     setCurrent($, null, undefined, undefined)
@@ -1580,14 +1924,14 @@ export const register: Register = (on, options) => {
       costUsd: e.cost?.usd,
       rateLimits: e.rateLimits.map(r => ({ kind: r.kind, percentUsed: r.percentUsed, resetsAt: r.resetsAt })),
     }
-    await update($, usageAtom, () => view)
+    await updateUsage($, () => view)
     // Between turns the heatmap follows the window from here too, and gets
     // its first reading here when turn.complete's refresh gave none; never
     // mid-turn, so "per turn" stays one reading a turn.
     const measured = e.context.tokens
     if (measured !== undefined && !isTurnRunning && measured !== lastMeasured) {
       lastMeasured = measured
-      const ctx = await read($, contextAtom)
+      const ctx = await readContext($)
       if (ctx === null || Math.abs(ctx.used - measured) > 2000) void refreshContext($, e.context).catch(() => {})
     }
     const cost = e.cost?.usd
@@ -1641,38 +1985,11 @@ export const register: Register = (on, options) => {
     return next(e)
   })
 
-  on('command.run', { command: 'atelier' }, async ($, e) => {
-    const [verb = '', ...rest] = e.args.trim().split(/\s+/)
-    if (verb === 'close') {
-      await $.ui.close({ id: PANE })
+  // Does what /atelier asks, says so in a toast, and passes the command on.
+  on('command.run', { command: 'atelier' }, async ($, e, next) => {
+    await runAtelierCommand($, e.args, e.presentation.columns)
 
-      return { text: 'Atelier closed.' }
-    }
-    if (verb === 'compact') {
-      await update($, viewAtom, v => ({ ...v, isCompact: !v.isCompact }))
-      await open($, e.presentation.columns)
-
-      return { text: 'Atelier compact mode toggled.' }
-    }
-    if (verb === 'stats') {
-      await flushStats($)
-      await setView($, v => ({ ...v, isStats: v.isStats !== true, isDetail: false }))
-      await open($, e.presentation.columns)
-
-      return { text: 'Atelier stats view toggled.' }
-    }
-    if (verb === 'search') {
-      const query = rest.join(' ')
-      if (query === '') return { text: 'Usage: /atelier search <query>' }
-      const hits = await search($, query)
-      await open($, e.presentation.columns)
-      if (hits.length === 0) return { text: `No matches for "${query}".` }
-
-      return { text: hits.slice(0, 10).map(h => `${new Date(h.at).toISOString().slice(0, 10)} [${h.source}] ${h.text}`).join('\n') }
-    }
-    await open($, e.presentation.columns)
-
-    return { text: 'Atelier opened. Args: close | compact | stats | search <query>' }
+    return next(e)
   })
 
   on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {
@@ -1687,26 +2004,26 @@ export const register: Register = (on, options) => {
     }
     const [tasks, rootId, agents, usage, feed, current, files, alerts, view, observer, timeline, confidence, peers, handoff, found, decisions, rate, cache, context, spend] =
       await Promise.all([
-        read($, tasksAtom),
-        read($, rootAtom),
-        read($, agentsAtom),
-        read($, usageAtom),
-        read($, feedAtom),
-        read($, currentAtom),
-        read($, filesAtom),
-        read($, alertsAtom),
-        read($, viewAtom),
-        read($, observerAtom),
-        read($, timelineAtom),
-        read($, confidenceAtom),
-        read($, peersAtom),
-        read($, handoffAtom),
-        read($, searchAtom),
-        read($, decisionsAtom),
-        read($, rateAtom),
-        read($, cacheAtom),
-        read($, contextAtom),
-        read($, spendAtom),
+        readTasks($),
+        readRoot($),
+        readAgents($),
+        readUsage($),
+        readFeed($),
+        readCurrent($),
+        readFiles($),
+        readAlerts($),
+        readView($),
+        readObserver($),
+        readTimeline($),
+        readConfidence($),
+        readPeers($),
+        readHandoff($),
+        readSearch($),
+        readDecisions($),
+        readRate($),
+        readCache($),
+        readContext($),
+        readSpend($),
       ])
     // Bars draw eased: the ticker walks `shown` toward each target.
     const eased = (t: Task): Task => {
@@ -1720,8 +2037,8 @@ export const register: Register = (on, options) => {
     const main = agents.find(a => a.id === 'main')
     const swallow = (p: Promise<unknown>) => void p.catch(() => {})
     const now = await $.clock.now()
-    const stats = await read($, statsAtom)
-    const agentRates = await read($, agentRatesAtom)
+    const stats = await readStats($)
+    const agentRates = await readAgentRates($)
 
     return drawSidebar(
       {
@@ -1779,8 +2096,8 @@ export const register: Register = (on, options) => {
           statsRange = RANGES[(RANGES.indexOf(statsRange) + 1) % RANGES.length] ?? 'today'
           $.ui.invalidate('ui.render')
         },
-        toggleCompact: () => swallow(update($, viewAtom, v => ({ ...v, isCompact: !v.isCompact }))),
-        toggleNote: () => swallow(update($, viewAtom, v => ({ ...v, isNoteOpen: !v.isNoteOpen }))),
+        toggleCompact: () => swallow(updateView($, v => ({ ...v, isCompact: !v.isCompact }))),
+        toggleNote: () => swallow(updateView($, v => ({ ...v, isNoteOpen: !v.isNoteOpen }))),
         stop: () => swallow(interrupt($)),
         compact: () => swallow(compactNow($)),
         tests: () => swallow(runTests($)),
@@ -1790,8 +2107,8 @@ export const register: Register = (on, options) => {
         revert: id => swallow(revertDecision($, id)),
         openDiff: path => swallow(openDiff($, path)),
         useHandoff: () => (handoff === null ? undefined : swallow($.prompt.fill({ text: handoffText(handoff) }))),
-        dismissHandoff: () => swallow(update($, handoffAtom, () => null)),
-        closeSearch: () => swallow(update($, searchAtom, () => null)),
+        dismissHandoff: () => swallow(updateHandoff($, () => null)),
+        closeSearch: () => swallow(updateSearch($, () => null)),
       },
     )
   })

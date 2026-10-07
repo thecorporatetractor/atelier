@@ -50,12 +50,13 @@ atelier is published in the Claude plugin directory, whose review reads the code
 - End every hook with `return next(e)`, passing its own event unchanged. A streaming hook passes the stream through whole: `const result = yield* next(e)`, then `return result`. Work may happen before that line, never in place of it.
 - Never rewrite an event (`next({ ...e, ... })`), never return a changed result (`{ ...ran, context }`), never answer for the engine (`{ deny }`, `{ ask }`, `{ result }`).
 - To see how a tool call ended, hook `classic.PostToolUse` / `classic.PostToolUseFailure`. Never `await next(e)` in `tool.call` to read its result.
-- The two hooks that answer: `ui.render` returns the sidebar's tree, and `command.run` answers atelier's own `/atelier` command (matcher `{ command: 'atelier' }`) with a literal `{ text }`.
+- `ui.render` is the one hook that answers: it returns the sidebar's tree. Even atelier's own `/atelier` command hook does its work, says so with a toast, and ends with `return next(e)`.
 - Don't hook `tool.check`, `tool.describe`, `prompt.compose`, `config.set`, `agent.register` or `fs.write`. Don't register agents, change the permission mode or touch Remote Control.
 
 ### `$` and calls
 
-- Spell every call `$.noun.method(...)`. Pass `$` only as one whole argument: to a function declared at the top level of `register.tsx`, or to `read` / `update` from `claude-code`.
+- Spell every call `$.noun.method(...)`. Pass `$` only as one whole argument to a function declared at the top level of `register.tsx`, and nowhere else: not even to `read`, `update` or `atom` from `claude-code`. State goes through the `readX($)` / `updateX($, change)` helpers in `register.tsx`, which call `$.state.get` / `$.state.set` with a literal reference.
+- Read the project folder from the event (`session.start`'s `e.cwd`), not from the machine.
 - Programs: `$.process.run` with the program's name and fixed arguments written in the call, e.g. `$.process.run(['git', 'add', '-A'], init)`. Never a shell, never an argument built from a setting, the model or a file. A choice the person makes selects one of a fixed set of such calls (see `runTestCommand`).
 - The only way out of the machine is `$.model.complete` / `$.model.classify`. No `$.http`, `$.mcp` or `$.session.send` unless the README says exactly what goes where.
 - `$.prompt.submit` and `$.prompt.fill` only from a button the person pressed, with text the README shows.

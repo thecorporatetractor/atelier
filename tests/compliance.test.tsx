@@ -94,4 +94,18 @@ describe('compliance', () => {
     expect(node?.model).toBe('claude-test')
     expect(h.state<Task[]>('tasks')?.find(t => t.agentId === 'a1')?.title).toBe('Map the code')
   })
+
+  test('/atelier does its work, then passes the command on unchanged', { options: { observer: false } }, async ($, on) => {
+    harness(on)
+    let passed: unknown
+    on('command.run', (_, e) => {
+      passed = e
+
+      return {}
+    })
+    await $.session.start({ cwd: ROOT, surface: 'terminal', isInteractive: true })
+    await $.command.run({ command: 'atelier', args: 'compact', origin: { kind: 'composer' }, presentation: { isFullscreen: true, columns: 160 } })
+    expect((passed as { command: string; args: string }).command).toBe('atelier')
+    expect((passed as { args: string }).args).toBe('compact')
+  })
 })
