@@ -4,7 +4,7 @@ import type { Register } from 'claude-code'
 import type { ToolCall } from '../types'
 
 const PANE = 'tool-calls'
-const calls = atom({ plugin: 'tool-calls', key: 'calls' } as const, [])
+const calls = atom({ plugin: 'atelier', key: 'calls' } as const, [])
 
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
