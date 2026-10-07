@@ -96,3 +96,38 @@ export function streamStep(on: On, chars = 480) {
     return { turnId: e.turnId, index: e.index, answer: '', toolUses: [], stopReason: 'end_turn', usage }
   })
 }
+
+type Loose = (event: string, hook: (...args: never[]) => unknown) => unknown
+type ToolAnswer = { result: unknown; text?: string; isError?: true }
+
+/**
+ * Tools beneath the mod, as the engine runs them: `tool.call` answers with
+ * `answer`, and `end($)` then raises PostToolUse (or PostToolUseFailure for
+ * an error) for every call made since, which is where the mod reads results.
+ */
+export function tools(on: On, answer: (e: Record<string, unknown>) => ToolAnswer = () => ({ result: 'ok', text: 'ok' })) {
+  const loose = on as unknown as Loose
+  const open: { id: string; tool: string; input: Record<string, unknown>; answer: ToolAnswer }[] = []
+  loose('tool.call', (_$: unknown, e: Record<string, unknown>) => {
+    const a = answer(e)
+    open.push({ id: String(e.tool_use_id), tool: String(e.tool), input: e, answer: a })
+
+    return a
+  })
+  for (const event of ['classic.PostToolUse', 'classic.PostToolUseFailure', 'classic.PostCompact']) loose(event, () => ({}))
+
+  return {
+    /** Raises each open call's end, in order, as the engine does after running it. */
+    end: async ($: unknown) => {
+      const classic = ($ as { classic: Record<string, (e: unknown) => Promise<unknown>> }).classic
+      for (const c of open.splice(0)) {
+        const { tool: _t, tool_use_id: _id, ...toolInput } = c.input
+        if (c.answer.isError === true) {
+          await classic.PostToolUseFailure!({ tool_name: c.tool, tool_input: toolInput, tool_use_id: c.id, error: String(c.answer.text ?? c.answer.result) })
+        } else {
+          await classic.PostToolUse!({ tool_name: c.tool, tool_input: toolInput, tool_response: c.answer.result, tool_use_id: c.id })
+        }
+      }
+    },
+  }
+}

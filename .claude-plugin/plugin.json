@@ -32,24 +32,6 @@
       "description": "Quiet time before a partial batch is flushed",
       "default": 4000
     },
-    "planningNudge": {
-      "type": "string",
-      "title": "Planning nudge",
-      "description": "Ask Claude to use its task tool: off, nudge-once, always, or describe",
-      "options": [
-        "off",
-        "nudge-once",
-        "always",
-        "describe"
-      ],
-      "default": "off"
-    },
-    "sound": {
-      "type": "boolean",
-      "title": "Attention sound",
-      "description": "Play a sound when Claude waits on you",
-      "default": false
-    },
     "testCommand": {
       "type": "string",
       "title": "Test command",

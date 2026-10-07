@@ -4,7 +4,7 @@ import { describe, expect, test } from 'claude-code/testing'
 
 import type { DayStats, StatsView } from '../types'
 import { dayKey, emptyDay } from '../hooks/lib/model'
-import { harness, ROOT, streamStep, T0, USAGE } from './support/harness'
+import { harness, ROOT, streamStep, T0, tools, USAGE } from './support/harness'
 
 const OFF = { options: { observer: false } }
 const DAY = 86_400_000
@@ -60,13 +60,14 @@ describe('stats history', () => {
     const h = harness(on, { store: { stats: past }, now: NOW })
     streamStep(on)
     on('agent.spawn', () => ({ model: 'claude-test', agentId: 'a1' }))
-    on('tool.call', () => ({ result: 'ok', text: 'ok' }))
+    const tool = tools(on)
     await $.session.start({ cwd: ROOT, surface: 'terminal', isInteractive: true })
     // The first measurement is the baseline; the second one's growth is today's cost.
     await $.session.measure({ context: { tokens: 1, window: 200_000 }, rateLimits: [], cost: { usd: 1 }, changed: ['cost'] })
     await $.turn.start({ text: 'go', turnId: 't1' })
     await drain($.turn.step({ turnId: 't1', index: 0, model: 'claude-test', messageCount: 1 }))
     await $.tool.call({ tool: 'Bash', command: 'npm test' })
+    await tool.end($)
     h.listed.push({ id: 'a1', type: 'Explore', description: 'Map the code', status: 'running' })
     await $.agent.spawn(SPAWN)
     // The sync right after a spawn reads the agent list.

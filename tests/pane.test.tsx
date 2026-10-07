@@ -1,5 +1,7 @@
 import { expect, mock, test } from 'claude-code/testing'
 
+import { tools } from './support/harness'
+
 const PROPS = {
   title: 'Atelier',
   isFocused: false,
@@ -83,8 +85,9 @@ test('the terminal draws the sections as text; the remote surfaces an Svg with n
 
 test('Activity keeps at least eight past items', { options: { observer: false } }, async ($, on) => {
   const clock = mock.clock(on, { now: 1_000_000 })
-  on('tool.call', () => ({ result: 'ok', text: 'ok' }))
+  const tool = tools(on)
   for (let i = 0; i < 12; i += 1) await $.tool.call({ tool: 'Bash', command: `echo step${i}` })
+  await tool.end($)
   // The feed is published in batches, at most every 300ms.
   await clock.advance(400)
   const ui = await $.ui.mount({ plugin: 'atelier', surface: 'terminal', component: 'Pane', requestId: 'atelier', props: PROPS })
@@ -96,8 +99,11 @@ test('Activity keeps at least eight past items', { options: { observer: false } 
 test('failing tool calls reach the feed and a spin loop warns', { options: { observer: false } }, async ($, on) => {
   const clock = mock.clock(on, { now: 1_000_000 })
   on('ui.toast', () => ({ value: undefined }))
-  on('tool.call', () => ({ isError: true as const, result: 'boom', text: 'boom' }))
-  for (let i = 0; i < 3; i += 1) await $.tool.call({ tool: 'Bash', command: 'npm run flaky' })
+  const tool = tools(on, () => ({ isError: true as const, result: 'boom', text: 'boom' }))
+  for (let i = 0; i < 3; i += 1) {
+    await $.tool.call({ tool: 'Bash', command: 'npm run flaky' })
+    await tool.end($)
+  }
   await clock.advance(400)
   const ui = await $.ui.mount({ plugin: 'atelier', surface: 'terminal', component: 'Pane', requestId: 'atelier', props: PROPS })
   expect(await ui.find({ type: 'Text', text: /retried this 3 times/ })).toBeDefined()
@@ -156,7 +162,7 @@ test('s switches to the stats screen, which says it is collecting until figures 
 
 test('an edit the engine did not diff still counts its lines', { options: { observer: false } }, async ($, on) => {
   const clock = mock.clock(on, { now: 1_000_000 })
-  on('tool.call', (_, e) =>
+  const tool = tools(on, e =>
     e.tool === 'Edit'
       ? {
           result: { filePath: e.file_path, oldString: e.old_string, newString: e.new_string, originalFile: null, structuredPatch: [], userModified: false, replaceAll: false },
@@ -165,6 +171,7 @@ test('an edit the engine did not diff still counts its lines', { options: { obse
       : { result: 'ok', text: 'ok' },
   )
   await $.tool.call({ tool: 'Edit', file_path: '/p/src/a.ts', old_string: 'keep\nold', new_string: 'keep\nnew\nmore' })
+  await tool.end($)
   await clock.advance(400)
   const ui = await $.ui.mount({ plugin: 'atelier', surface: 'terminal', component: 'Pane', requestId: 'atelier', props: PROPS })
   expect(await ui.find({ type: 'Text', text: /\+2 −1/ })).toBeDefined()
@@ -210,12 +217,13 @@ test("a subagent's steps count live, and its turn's end adds nothing twice", { o
   await step.result
   await clock.advance(1200)
   const ui = await $.ui.mount({ plugin: 'atelier', surface: 'terminal', component: 'Pane', requestId: 'atelier', props: PROPS })
-  // 1000 + 200 burned tokens on the agent's row, and a tok/s sample from its stream.
+  // 1000 + 200 burned tokens on the agent's row, and a tok/s sample from its step.
   expect(await ui.find({ type: 'Text', text: /Explore.*1\.2k/ })).toBeDefined()
   // Its own chart row sits under it, scaled to its own peak.
   expect(await ui.find({ type: 'Box', key: 'agent-chart-a1' })).toBeDefined()
-  expect(await ui.find({ type: 'Text', text: /peak 100 / })).toBeDefined()
-  expect(await ui.find({ type: 'Text', text: /^100$/ })).toBeDefined()
+  // 200 output tokens over the 1.2s tick: 167 tok/s.
+  expect(await ui.find({ type: 'Text', text: /peak 167 / })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /^167$/ })).toBeDefined()
   expect(await ui.find({ type: 'Text', text: /● hot/ })).toBeDefined()
   await $.turn.complete({ turnId: 'a1-t', agentId: 'a1', answer: 'hi', durationMs: 1200, isAborted: false, reason: 'answer', usage: USAGE })
   await ui.redraw()

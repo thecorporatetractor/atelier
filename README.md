@@ -102,8 +102,6 @@ All of them live in `/config` under atelier.
 | Observer model | `haiku` | Any model alias or id |
 | Observer batch size | 5 | Tool calls gathered before the observer looks |
 | Observer debounce | 4000 ms | Quiet time before a partial batch is looked at |
-| Planning nudge | off | Ask Claude to keep its own task list: `nudge-once`, `always` or `describe` |
-| Attention sound | off | Play a sound when Claude waits on you (macOS) |
 | Test command | `npm test` | What `t` runs: one of `npm test`, `pnpm test`, `yarn test`, `bun test`, `make test`, `pytest`, `cargo test`, `go test` |
 | Start compact | off | Open in one-line mode |
 
@@ -144,17 +142,21 @@ atelier submits a prompt only when you press a button for it:
 | `x` on a flagged decision, then confirm | `Please revert the change from the decision "<title>: <choice>"` and the observer's flag, asking it to keep to the plan |
 | `⏎ answer` on a pending decision | Nothing is sent: `<decision>: go with <option>.` is put in your prompt box for you to edit or send |
 
-### Hooks that change what Claude sees
+### What its hooks do
 
-Three hooks can change what Claude reads, and all three are **off** until you choose a **Planning nudge** in `/config`:
+None of atelier's hooks change or answer what they see: each one notes the event and passes it on unchanged, so Claude reads exactly what it would without atelier.
 
-| Setting | Hook | What it changes |
-| --- | --- | --- |
-| `describe` | `tool.describe` | Adds one sentence to the descriptions of Claude's `TaskCreate` and `TodoWrite` tools, asking it to keep a task list for multi-step work |
-| `always` | `prompt.submit` | Adds one line of context to each prompt you send, asking Claude to track its steps with its task tools |
-| `nudge-once` | `tool.call` | Once per prompt, after six tool calls on multi-step work with no task list, adds the same line after a tool's result |
-
-Every other hook only watches and passes the event on unchanged: `tool.call` (activity, files, tests, retries), `turn.step` (token counting; the response passes through untouched), `agent.spawn` (notes a new subagent), `turn.start`, `turn.complete`, `session.measure`, `session.compact` (usage and history), and `classic.PermissionRequest` / `classic.Notification`, which decide nothing: they show the "waiting on you" banner and toast, and play a sound if you turned that on. `command.run` answers only atelier's own `/atelier` command.
+| Hook | What atelier notes |
+| --- | --- |
+| `tool.call`, `PostToolUse`, `PostToolUseFailure` | Each tool call and how it ended: the activity feed, files and line counts, test results, repeated failures |
+| `turn.step` | The tokens each model response used (the response itself streams through untouched) |
+| `agent.spawn` | That a subagent started, to give it a row and a task |
+| `turn.start`, `turn.complete`, `session.measure`, `PostCompact` | Turn timing, usage, cost, context and compactions, for the sidebar and the stats screen |
+| `prompt.submit` | That you sent a prompt, to start a task for it |
+| `PermissionRequest`, `Notification` | That Claude is waiting on you, to show a banner and a toast; they decide nothing |
+| `session.start`, `session.end` | Setting up the sidebar, and saving the day's figures |
+| `ui.render` | Drawing the sidebar |
+| `command.run` | Answering atelier's own `/atelier` command, and no other |
 
 Two buttons act on the session itself: `^C stop` cancels the running turn, and `c` compacts the conversation, the same as `/compact`.
 

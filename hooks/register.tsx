@@ -65,6 +65,22 @@ import {
   summarizeCall,
 } from './lib/model'
 import { RANGES, type RangeKey } from './stats'
+import {
+  DECISION_SYSTEM,
+  OBSERVER_SYSTEM,
+  type Options,
+  readOptions,
+  SEED_SYSTEM,
+  SUMMARY_SYSTEM,
+  type TestCommand,
+  burned,
+  dayKey,
+  decisionBrief,
+  declaredParent,
+  handoffText,
+  mapStatus,
+  taskBrief,
+} from './lib/support'
 import { drawSidebar } from './view'
 
 // The Stats screen's range (`r` cycles it): a drawing choice, this load's only.
@@ -80,8 +96,6 @@ const TIMELINE_MAX = 200
 const FILES_MAX = 100
 const SUMMARIES_MAX = 40
 const PEER_TTL = 15 * 60_000
-const NUDGE_AFTER = 6
-const SOUND = 'assets/attention.wav'
 const RATE_MS = 1200
 const RATE_WINDOW = 50
 const CACHE_TTL_MS = 5 * 60_000
@@ -125,70 +139,6 @@ const spendAtom = atom({ plugin: 'atelier', key: 'spend' } as const, null)
 const statsAtom = atom({ plugin: 'atelier', key: 'stats' } as const, null)
 const agentRatesAtom = atom({ plugin: 'atelier', key: 'agentRates' } as const, {})
 
-type Options = {
-  isObserverOn: boolean
-  observerModel: string
-  batchSize: number
-  debounceMs: number
-  nudge: 'off' | 'nudge-once' | 'always' | 'describe'
-  isSoundOn: boolean
-  testCommand: TestCommand
-  isCompactDefault: boolean
-}
-
-function readOptions(o: PluginOptions): Options {
-  const nudge = o.planningNudge
-
-  return {
-    isObserverOn: o.observer !== false,
-    observerModel: typeof o.observerModel === 'string' && o.observerModel !== '' ? o.observerModel : 'haiku',
-    batchSize: typeof o.batchSize === 'number' && o.batchSize > 0 ? o.batchSize : 5,
-    debounceMs: typeof o.debounceMs === 'number' && o.debounceMs > 0 ? o.debounceMs : 4000,
-    nudge: nudge === 'nudge-once' || nudge === 'always' || nudge === 'describe' ? nudge : 'off',
-    isSoundOn: o.sound === true,
-    testCommand: (TEST_COMMANDS as readonly string[]).includes(String(o.testCommand)) ? (o.testCommand as TestCommand) : 'npm test',
-    isCompactDefault: o.compactDefault === true,
-  }
-}
-
-// The test runners the Run tests button may start: one program by name with
-// fixed arguments each, never a shell or a command line from a setting.
-const TEST_COMMANDS = ['npm test', 'pnpm test', 'yarn test', 'bun test', 'make test', 'pytest', 'cargo test', 'go test'] as const
-type TestCommand = (typeof TEST_COMMANDS)[number]
-
-const NUDGE =
-  'This work has several steps. Track them with the TaskCreate and TaskUpdate tools (one task per step, marked in_progress and completed as you go) so the person can follow progress.'
-
-const DESCRIBE_EXTRA =
-  '\n\nUse this proactively whenever the work takes three or more steps: create one task per step before starting, and keep each status current.'
-
-const SEED_SYSTEM =
-  'You turn a coding request into a goal and a short plan. Reply with JSON only, no prose: {"goal": string (at most 60 characters), "steps": string[] (2 to 7 short imperative steps, at most 50 characters each)}.'
-
-const OBSERVER_SYSTEM = `You keep a task list for a coding session by watching the agent's tool calls. Reply with JSON only, a diff:
-{"add":[{"id":"temp id","title":"...","parentId":"existing id, temp id or root","phase":"...","status":"..."}],
- "update":[{"id":"...","status":"...","phase":"...","progress":0.5,"note":"..."}],
- "complete":["id"],
- "merge":[{"inferredId":"...","declaredId":"..."}]}
-Phases: ${PHASES.join(', ')}. Statuses: pending, running, waiting, blocked, done. progress is 0 to 1 overall.
-Tasks may carry an agentId: those belong to a subagent. A tool call prefixed [agent <id>] is that subagent's: it advances only that subagent's tasks (the one with that agentId and parentId null, and its steps); add a subagent's new steps with parentId set to its task's id. Unprefixed calls are the main agent's.
-Declared tasks are the agent's own: never add a task a declared one already covers; merge an inferred task into the declared task that describes the same work.
-Decisions are tracked by a separate pass: leave them out.
-Titles at most 50 characters. Use empty arrays when nothing changed.`
-
-const DECISION_SYSTEM = `You keep the list of decisions a coding agent makes while it works, for a sidebar the person watches.
-You get the decisions known so far and what happened since: what the agent said, what it asked, what the person answered, notable tool calls.
-Reply with JSON only: {"decisions":[...]} holding only new decisions and changes to known ones (match a known one by its id). Fields:
-"decisions":[{"id":"existing id when updating","title":"one or two words","chosen":"what it picked","rejected":[{"option":"...","reason":"two or three words"}],"rationale":"why, at most 12 words","confidence":0.75,"reversible":true,"evidence":["file:line","3 test runs"],"files":1,"outsidePlan":"set only when it touches work outside the plan, e.g. 1 file outside plan"}]
-A decision is a point where the agent picked one approach over others (an approach, a scope change, how to test, what to skip), or settled something the person asked.
-When the agent asks the person to choose, add one with "pending":true, "options":[...], "lean":"the option it prefers", "blocks":"what waits on it".
-When the person answers or the agent goes ahead, update that pending one: "pending":false and "chosen".
-When the agent changes course on a known decision, update its "chosen", "rejected" and "rationale".
-Only real choices; reply {"decisions":[]} when nothing changed.`
-
-const SUMMARY_SYSTEM =
-  'You write a hand-off note for a coding session. Reply with JSON only: {"done": string[], "remaining": string[], "questions": string[], "text": "two or three plain sentences"}. Each list item at most 80 characters.'
-
 let opt: Options = readOptions({})
 let isPlaced = false
 let asked: number | undefined
@@ -198,9 +148,6 @@ let isFlushing = false
 let attempts: Attempts = {}
 let turnId: string | undefined
 let isTurnRunning = false
-let callsThisPrompt = 0
-let isNudged = false
-let isMultiStep = false
 let flushesSinceDrift = 0
 let isSummaryDirty = false
 let sessionId = ''
@@ -403,7 +350,6 @@ async function seed($: EngineInterface, text: string, rootId: string) {
 
     return
   }
-  isMultiStep = kind === 'multi-step-work'
   const r = await $.model.complete({
     model: opt.observerModel,
     system: SEED_SYSTEM,
@@ -486,15 +432,6 @@ function scheduleFlush($: EngineInterface) {
   })
 }
 
-function taskBrief(list: readonly Task[]) {
-  return JSON.stringify(
-    list
-      .filter(t => t.status !== 'done' || nowMs() - t.updatedAt < 10 * 60_000)
-      .slice(-40)
-      .map(t => ({ id: t.id, title: t.title, source: t.source, status: t.status, phase: t.phase, parentId: t.parentId, agentId: t.agentId })),
-  )
-}
-
 async function flush($: EngineInterface) {
   if (isFlushing || buffer.length === 0) return
   isFlushing = true
@@ -554,10 +491,6 @@ function noteForDecisions($: EngineInterface, line: string) {
     decideTimer = undefined
     void decide($).catch(() => {})
   })
-}
-
-function decisionBrief(list: readonly { id: string; title: string; chosen: string; isPending: boolean; options?: string[]; lean?: string }[]) {
-  return JSON.stringify(list.slice(-12).map(d => ({ id: d.id, title: d.title, chosen: d.chosen, pending: d.isPending, options: d.options, lean: d.lean })))
 }
 
 /** Asks Haiku for new decisions and changes to known ones, from what happened since the last pass. */
@@ -651,7 +584,6 @@ async function attention($: EngineInterface, text: string) {
   await update($, alertsAtom, a => ({ ...a, attention: text }))
   await setTasks($, (list, rootId) => list.map(t => (t.id === rootId && t.status === 'running' ? { ...t, status: 'waiting' as const } : t)))
   $.ui.toast(`Atelier: ${text}`)
-  if (opt.isSoundOn) void $.audio.play({ asset: SOUND }).catch(() => {})
 }
 
 async function clearAttention($: EngineInterface) {
@@ -662,19 +594,6 @@ async function clearAttention($: EngineInterface) {
 }
 
 // ---------- declared tasks ----------
-
-function mapStatus(s: string | undefined): TaskStatus | undefined {
-  if (s === 'in_progress') return 'running'
-  if (s === 'completed') return 'done'
-  if (s === 'pending') return 'pending'
-
-  return undefined
-}
-
-/** Where a loop's declared tasks hang: a subagent's under its own task, the main loop's under the root. */
-function declaredParent(list: readonly Task[], rootId: string | null, agentId: string | undefined) {
-  return agentId === undefined ? rootId : (agentTaskOf(list, agentId)?.id ?? rootId)
-}
 
 async function declare($: EngineInterface, externalId: string, subject: string, agentId?: string) {
   const now = nowMs()
@@ -953,12 +872,6 @@ async function loadHandoff($: EngineInterface) {
   await update($, handoffAtom, () => last ?? null)
 }
 
-function handoffText(s: Summary) {
-  const part = (title: string, items: string[]) => (items.length === 0 ? '' : `\n${title}:\n${items.map(i => `- ${i}`).join('\n')}`)
-
-  return `Hand-off from the last session: ${s.text}${part('Done', s.done)}${part('Remaining', s.remaining)}${part('Open questions', s.questions)}`
-}
-
 async function search($: EngineInterface, query: string) {
   const q = query.toLowerCase()
   const hits: SearchHit[] = []
@@ -1062,19 +975,6 @@ async function pushSamples($: EngineInterface, rates: number[]) {
       count: r.count + live.length,
     }
   })
-}
-
-function chunkChars(c: unknown) {
-  const o = c as { kind?: string; text?: unknown; json?: unknown }
-  if (typeof o.text === 'string') return o.text.length
-  if (typeof o.json === 'string') return o.json.length
-
-  return 0
-}
-
-/** Tokens a response burned: what was sent uncached or written, and what came back. */
-function burned(u: ModelUsage) {
-  return u.input_tokens + u.cache_creation_input_tokens + u.output_tokens
 }
 
 /** Tallies one step's usage for its loop; no state write until the tick. */
@@ -1229,10 +1129,6 @@ async function refreshContext($: EngineInterface, plain?: { tokens?: number; win
     isEstimate: split.isEstimate,
   }
   await update($, contextAtom, () => view)
-}
-
-function dayKey(ms: number) {
-  return new Date(ms).toISOString().slice(0, 10)
 }
 
 type SpendBook = Record<string, { total: number; byModel: Record<string, number> }>
@@ -1405,6 +1301,100 @@ async function countSession($: EngineInterface) {
   })
 }
 
+// ---------- model steps ----------
+
+function startStep($: EngineInterface, agentId: string | undefined, model: string) {
+  if (agentId !== undefined) {
+    lastActivity.set(agentId, nowMs())
+    // Read first: most steps find the model already set and write nothing.
+    void read($, agentsAtom)
+      .then(list => (list.some(a => a.id === agentId && a.model === '') ? update($, agentsAtom, l => l.map(a => (a.id === agentId && a.model === '' ? { ...a, model } : a))) : undefined))
+      .catch(() => {})
+  }
+  streamCount += 1
+  startSampler($)
+}
+
+function endStep($: EngineInterface, agentId: string | undefined, result: { answer: string; usage: (ModelUsage & { model?: string }) | null }) {
+  streamCount = Math.max(0, streamCount - 1)
+  if (result.usage !== null) {
+    // The sampler reads characters; four make a token, as in its rate.
+    const chars = result.usage.output_tokens * 4
+    streamChars += chars
+    streamCharsBy.set(agentId ?? 'main', (streamCharsBy.get(agentId ?? 'main') ?? 0) + chars)
+    tallyStep(result.usage, agentId)
+  }
+  const answer = result.answer.trim()
+  if (answer === '') return
+  if (agentId === undefined) buffer.push(`Agent said: ${answer.replace(/\s+/g, ' ').slice(0, 300)}`)
+  noteForDecisions($, `${agentId === undefined ? 'Agent' : `[agent ${agentId}]`} said: ${answer}`)
+}
+
+// ---------- tool calls ----------
+
+/** A call between tool.call and its PostToolUse, by its tool_use_id. */
+type OpenCall = { feedId: string; tool: string; input: Record<string, unknown>; text: string; agentId?: string; calledAt: number }
+const openCalls = new Map<string, OpenCall>()
+
+async function startCall($: EngineInterface, input: Record<string, unknown>, tool: string, toolUseId: string, agentId: string | undefined) {
+  const text = describeCall(tool, input)
+  const feedId = rid('f')
+  openCalls.set(toolUseId, { feedId, tool, input, text, agentId, calledAt: nowMs() })
+  if (openCalls.size > 200) openCalls.delete(openCalls.keys().next().value as string)
+  await pushFeed($, { id: feedId, at: nowMs(), text: feedLine(tool, input, root), tool, state: 'running', agentId })
+  setCurrent($, text, agentId, text)
+  if (agentId !== undefined) lastActivity.set(agentId, nowMs())
+  if (agentId !== undefined && nowMs() - lastSyncAt > 1_000) {
+    const isKnown = (await read($, agentsAtom)).some(a => a.id === agentId && a.status === 'running')
+    if (!isKnown) void syncAgents($).catch(() => {})
+  }
+  if (tool === 'AskUserQuestion') {
+    await attention($, 'Claude is asking you a question')
+    noteForDecisions($, `${agentId === undefined ? 'Agent' : `[agent ${agentId}]`} asks the person: ${JSON.stringify(input.questions ?? input).slice(0, 1500)}`)
+  }
+  if (agentId === undefined && typeof input.file_path === 'string') lastFile = input.file_path
+  const phase = phaseOfTool(tool, typeof input.command === 'string' ? input.command : undefined)
+  if (phase !== undefined) {
+    // Each loop moves only its own tasks: a subagent's calls, its task.
+    const now = nowMs()
+    await setTasks($, (list, rootId) => advancePhase(list, phase, rootId, agentId, now))
+  }
+  // The session's own milestones, from what the tools say: the root's
+  // phase stops moving once it has steps, the timeline must not.
+  if (phase !== undefined && agentId === undefined && phase !== lastPhase) {
+    lastPhase = phase
+    await addTimeline($, 'phase', phase)
+  }
+}
+
+/** What a call's end changes: its feed line, retries, declared tasks, files, tests, the observer's batch. */
+async function endCall($: EngineInterface, toolUseId: string, isFailed: boolean, result: unknown, error: string | undefined) {
+  const call = openCalls.get(toolUseId)
+  if (call === undefined) return
+  openCalls.delete(toolUseId)
+  const { tool, input, text, agentId } = call
+  stat(d => {
+    d.tools = { [tool]: { calls: 1, fails: isFailed ? 1 : 0, ms: nowMs() - call.calledAt } }
+  })
+  const resultText = typeof result === 'string' ? result : error
+  await endFeed($, call.feedId, isFailed, callDetail(tool, input, result, resultText, isFailed))
+  await clearAttention($)
+  await recordSpin($, signatureOf(tool, input), isFailed, text)
+  if (!isFailed) {
+    const created = tool === 'TaskCreate' ? (result as { task?: { id?: unknown } } | null | undefined)?.task?.id : undefined
+    if (tool === 'TaskCreate' && typeof created === 'string' && typeof input.subject === 'string') await declare($, created, input.subject, agentId)
+    if (tool === 'TaskUpdate' && typeof input.taskId === 'string') {
+      await declareUpdate($, input.taskId, typeof input.status === 'string' ? input.status : undefined, typeof input.subject === 'string' ? input.subject : undefined)
+    }
+    if (tool === 'TodoWrite' && Array.isArray(input.todos)) await declareTodos($, input.todos as { content: string; status: string }[], agentId)
+    if ((tool === 'Edit' || tool === 'Write') && typeof input.file_path === 'string') await recordFile($, input.file_path, result, input)
+    if (tool === 'Read') readChars += JSON.stringify(result ?? '').length
+  }
+  if (tool === 'Bash' && typeof input.command === 'string' && isVerifyCommand(input.command)) await recordVerify($, input.command, !isFailed)
+  if (!/^(TaskCreate|TaskUpdate|TaskGet|TaskList|TodoWrite)$/.test(tool)) buffer.push(summarizeCall(tool, input, isFailed ? 'error' : 'ok', agentId))
+  scheduleFlush($)
+}
+
 // ---------- the hooks ----------
 
 export const register: Register = (on, options) => {
@@ -1458,8 +1448,6 @@ export const register: Register = (on, options) => {
     if (!isPlaced) void open($).catch(() => {})
     const isPerson = e.origin.kind === 'composer' || e.origin.kind === 'bridge' || e.origin.kind === 'sdk'
     if (!isPerson) return next(e)
-    callsThisPrompt = 0
-    isNudged = false
     lastPhase = undefined
     void clearAttention($).catch(() => {})
     void update($, decisionsAtom, list => (list.some(d => d.isPending) ? answerPending(list, e.text) : list)).catch(() => {})
@@ -1476,10 +1464,8 @@ export const register: Register = (on, options) => {
       await update($, rootAtom, () => id)
       if (opt.isObserverOn) void seed($, e.text, id).catch(() => {})
     }
-    if (opt.nudge === 'always') return next({ ...e, context: [...(e.context ?? []), NUDGE] })
-
     return next(e)
-  }).catch(($, e, next) => next(e))
+  })
 
   on('turn.start', async ($, e, next) => {
     turnId = e.turnId
@@ -1491,78 +1477,25 @@ export const register: Register = (on, options) => {
     return next(e)
   })
 
+  // Notes the call and passes it on unchanged; what follows the call is
+  // read from PostToolUse / PostToolUseFailure below.
   on('tool.call', async ($, e, next) => {
-    const input = e as unknown as Record<string, unknown>
-    const tool = String(e.tool)
-    const text = describeCall(tool, input)
-    const feedId = rid('f')
-    const agentId = e.agentId
-    callsThisPrompt += agentId === undefined ? 1 : 0
-    await pushFeed($, { id: feedId, at: nowMs(), text: feedLine(tool, input, root), tool, state: 'running', agentId })
-    setCurrent($, text, agentId, text)
-    if (agentId !== undefined) lastActivity.set(agentId, nowMs())
-    if (agentId !== undefined && nowMs() - lastSyncAt > 1_000) {
-      const isKnown = (await read($, agentsAtom)).some(a => a.id === agentId && a.status === 'running')
-      if (!isKnown) void syncAgents($).catch(() => {})
-    }
-    if (tool === 'AskUserQuestion') {
-      await attention($, 'Claude is asking you a question')
-      noteForDecisions($, `${agentId === undefined ? 'Agent' : `[agent ${agentId}]`} asks the person: ${JSON.stringify(input.questions ?? input).slice(0, 1500)}`)
-    }
-    if (agentId === undefined && typeof input.file_path === 'string') lastFile = input.file_path
-    const phase = phaseOfTool(tool, typeof input.command === 'string' ? input.command : undefined)
-    if (phase !== undefined) {
-      // Each loop moves only its own tasks: a subagent's calls, its task.
-      const now = nowMs()
-      await setTasks($, (list, rootId) => advancePhase(list, phase, rootId, agentId, now))
-    }
-    if (phase !== undefined && agentId === undefined) {
-      // The session's own milestones, from what the tools say: the root's
-      // phase stops moving once it has steps, the timeline must not.
-      if (phase !== lastPhase) {
-        lastPhase = phase
-        await addTimeline($, 'phase', phase)
-      }
-    }
+    await startCall($, e as unknown as Record<string, unknown>, String(e.tool), e.tool_use_id, e.agentId)
 
-    const calledAt = nowMs()
-    const ran = await next(e)
+    return next(e)
+  })
 
-    const isFailed = ran.deny !== undefined || ran.isError === true
-    stat(d => {
-      d.tools = { [tool]: { calls: 1, fails: isFailed ? 1 : 0, ms: nowMs() - calledAt } }
-    })
-    await endFeed($, feedId, isFailed, callDetail(tool, input, ran.result, ran.text, isFailed))
-    await clearAttention($)
-    await recordSpin($, signatureOf(tool, input), isFailed, text)
-    if (!isFailed) {
-      const created = e.tool === 'TaskCreate' ? (ran.result as { task?: { id?: unknown } } | null | undefined)?.task?.id : undefined
-      if (e.tool === 'TaskCreate' && typeof created === 'string') await declare($, created, e.subject, agentId)
-      if (e.tool === 'TaskUpdate') await declareUpdate($, e.taskId, e.status, e.subject)
-      if (e.tool === 'TodoWrite') await declareTodos($, e.todos, agentId)
-      if ((e.tool === 'Edit' || e.tool === 'Write') && typeof input.file_path === 'string') await recordFile($, input.file_path, ran.result, input)
-      if (tool === 'Read') readChars += ran.text?.length ?? 0
-    }
-    if (e.tool === 'Bash' && isVerifyCommand(e.command)) await recordVerify($, e.command, !isFailed)
-    if (!/^(TaskCreate|TaskUpdate|TaskGet|TaskList|TodoWrite)$/.test(tool)) {
-      buffer.push(summarizeCall(tool, input, ran.deny !== undefined ? 'denied' : isFailed ? 'error' : 'ok', agentId))
-    }
-    scheduleFlush($)
+  on('classic.PostToolUse', async ($, e, next) => {
+    await endCall($, e.tool_use_id, false, e.tool_response, undefined)
 
-    // The optional planning nudge: once per prompt, after the read the model
-    // gets with this tool's result, when the work is multi-step and undeclared.
-    if (opt.nudge === 'nudge-once' && !isNudged && agentId === undefined && ran.deny === undefined && callsThisPrompt >= NUDGE_AFTER && isMultiStep) {
-      const rootId = await read($, rootAtom)
-      const hasDeclared = (await read($, tasksAtom)).some(t => t.source === 'declared' && t.parentId === rootId)
-      if (!hasDeclared) {
-        isNudged = true
+    return next(e)
+  })
 
-        return { ...ran, context: [...(ran.context ?? []), NUDGE] }
-      }
-    }
+  on('classic.PostToolUseFailure', async ($, e, next) => {
+    await endCall($, e.tool_use_id, true, undefined, e.error)
 
-    return ran
-  }).catch(($, e, next) => next(e))
+    return next(e)
+  })
 
   // Notes the spawn and passes it on unchanged; the agent's id comes from
   // the engine's agent list, which the sync below reads right after.
@@ -1671,63 +1604,22 @@ export const register: Register = (on, options) => {
     return next(e)
   })
 
-  // Counts the response as it streams, for tok/s; every chunk passes on as
-  // it came. The hook's budget counts its own code alone, not the stream.
+  // Passes the response through untouched (yield* next(e)); what it cost
+  // is counted from the step's own usage once it has come back.
   on('turn.step', async function* ($, e, next) {
-    const isMain = e.agentId === undefined
-    if (e.agentId !== undefined) {
-      const id = e.agentId
-      const model = e.model
-      lastActivity.set(id, nowMs())
-      // Read first: most steps find the model already set and write nothing.
-      void read($, agentsAtom)
-        .then(list => (list.some(a => a.id === id && a.model === '') ? update($, agentsAtom, l => l.map(a => (a.id === id && a.model === '' ? { ...a, model } : a))) : undefined))
-        .catch(() => {})
-    }
-    streamCount += 1
-    try {
-      startSampler($)
-    } catch {
-      // No sampler: turn.complete still settles the figures.
-    }
-    let isTallied = false
-    try {
-      const stream = next(e)
-      for await (const c of stream) {
-        const n = chunkChars(c)
-        streamChars += n
-        if (n > 0) streamCharsBy.set(e.agentId ?? 'main', (streamCharsBy.get(e.agentId ?? 'main') ?? 0) + n)
-        // The stop chunk carries the usage first: counted here, before
-        // anything after the stream could fail.
-        if (c.kind === 'stop' && c.usage !== null && !isTallied) {
-          isTallied = true
-          tallyStep(c.usage, e.agentId)
-        }
-        yield c
-      }
-      const r = await stream.result
-      if (r.usage !== null && !isTallied) {
-        isTallied = true
-        tallyStep(r.usage, e.agentId)
-      }
-      if (isMain && r.answer.trim() !== '') buffer.push(`Agent said: ${r.answer.replace(/\s+/g, ' ').slice(0, 300)}`)
-      if (r.answer.trim() !== '') noteForDecisions($, `${isMain ? 'Agent' : `[agent ${e.agentId}]`} said: ${r.answer}`)
+    startStep($, e.agentId, e.model)
+    const result = yield* next(e)
+    endStep($, e.agentId, result)
 
-      return r
-    } finally {
-      streamCount = Math.max(0, streamCount - 1)
-    }
+    return result
   })
 
-  on('session.compact', async ($, e, next) => {
-    const r = await next(e)
-    if (r.skip === undefined) {
-      stat(d => {
-        d.compactions = 1
-      })
-    }
+  on('classic.PostCompact', async ($, e, next) => {
+    stat(d => {
+      d.compactions = 1
+    })
 
-    return r
+    return next(e)
   })
 
   on('session.end', async ($, e, next) => {
@@ -1741,19 +1633,12 @@ export const register: Register = (on, options) => {
     if (/permission|idle|elicitation|input/i.test(e.notification_type)) await attention($, e.message.slice(0, 80))
 
     return next(e)
-  }).catch(($, e, next) => next(e))
+  })
 
   on('classic.PermissionRequest', async ($, e, next) => {
     await attention($, `Permission needed: ${e.tool_name}`)
 
     return next(e)
-  }).catch(($, e, next) => next(e))
-
-  on('tool.describe', async ($, e, next) => {
-    const d = await next(e)
-    if (opt.nudge !== 'describe' || (e.tool !== 'TaskCreate' && e.tool !== 'TodoWrite')) return d
-
-    return { ...d, description: d.description + DESCRIBE_EXTRA }
   })
 
   on('command.run', { command: 'atelier' }, async ($, e) => {
