@@ -191,6 +191,8 @@ test('the heatmap draws from the plain figures when no breakdown comes', { optio
 test("a subagent's steps count live, and its turn's end adds nothing twice", { options: { observer: false } }, async ($, on) => {
   const clock = mock.clock(on, { now: 1_000_000 })
   on('agent.spawn', () => ({ model: 'claude-test', agentId: 'a1' }))
+  // The engine lists the spawned agent; atelier's sync reads it after the spawn.
+  on('agent.list', () => ({ value: [{ id: 'a1', type: 'Explore', description: 'Look around', status: 'running' as const }] }))
   on('ui.log', () => ({ value: undefined }))
   on('turn.complete', (_, e) => ({ text: e.answer }))
   on('turn.step', async function* (_, e) {
@@ -200,6 +202,7 @@ test("a subagent's steps count live, and its turn's end adds nothing twice", { o
     return { turnId: e.turnId, index: e.index, answer: 'hi', toolUses: [], stopReason: 'end_turn' as const, usage: USAGE }
   })
   await $.agent.spawn(SPAWN)
+  await clock.advance(400)
   const step = $.turn.step({ turnId: 'a1-t', index: 0, model: 'claude-test', messageCount: 1, agentId: 'a1' })
   for await (const _c of step) {
     // drained
@@ -222,12 +225,15 @@ test("a subagent's steps count live, and its turn's end adds nothing twice", { o
 })
 
 test('the status block says Working while only a subagent runs', { options: { observer: false } }, async ($, on) => {
-  mock.clock(on, { now: 1_000_000 })
+  const clock = mock.clock(on, { now: 1_000_000 })
   on('agent.spawn', () => ({ model: 'claude-test', agentId: 'a1' }))
+  // The engine lists the spawned agent; atelier's sync reads it after the spawn.
+  on('agent.list', () => ({ value: [{ id: 'a1', type: 'Explore', description: 'Look around', status: 'running' as const }] }))
   const before = await $.ui.mount({ plugin: 'atelier', surface: 'terminal', component: 'Pane', requestId: 'atelier', props: PROPS })
   expect(await before.find({ type: 'Text', text: /^Idle$/ })).toBeDefined()
   await before.unmount()
   await $.agent.spawn(SPAWN)
+  await clock.advance(400)
   const ui = await $.ui.mount({ plugin: 'atelier', surface: 'terminal', component: 'Pane', requestId: 'atelier', props: PROPS })
   expect(await ui.find({ type: 'Text', text: /^Working$/ })).toBeDefined()
   expect(await ui.find({ type: 'Text', text: /1 agent/ })).toBeDefined()

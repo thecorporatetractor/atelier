@@ -67,7 +67,10 @@ describe('usage reaches the sidebar', () => {
     on('agent.spawn', () => ({ model: 'claude-test', agentId: 'a1' }))
     on('tool.call', () => ({ result: 'ok', text: 'ok' }))
     await $.session.start({ cwd: ROOT, surface: 'terminal', isInteractive: true })
+    h.listed.push({ id: 'a1', type: 'Explore', description: 'Map the code', status: 'running' })
     await $.agent.spawn(SPAWN)
+    // The sync right after a spawn reads the agent list.
+    await h.clock.advance(400)
 
     expect(h.state<AgentNode[]>('agents')?.find(a => a.id === 'a1')?.status).toBe('running')
     expect(h.state<Task[]>('tasks')?.find(t => t.agentId === 'a1')?.title).toBe('Map the code')

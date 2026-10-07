@@ -132,7 +132,7 @@ type Options = {
   debounceMs: number
   nudge: 'off' | 'nudge-once' | 'always' | 'describe'
   isSoundOn: boolean
-  testCommand: string
+  testCommand: TestCommand
   isCompactDefault: boolean
 }
 
@@ -146,10 +146,15 @@ function readOptions(o: PluginOptions): Options {
     debounceMs: typeof o.debounceMs === 'number' && o.debounceMs > 0 ? o.debounceMs : 4000,
     nudge: nudge === 'nudge-once' || nudge === 'always' || nudge === 'describe' ? nudge : 'off',
     isSoundOn: o.sound === true,
-    testCommand: typeof o.testCommand === 'string' && o.testCommand !== '' ? o.testCommand : 'npm test',
+    testCommand: (TEST_COMMANDS as readonly string[]).includes(String(o.testCommand)) ? (o.testCommand as TestCommand) : 'npm test',
     isCompactDefault: o.compactDefault === true,
   }
 }
+
+// The test runners the Run tests button may start: one program by name with
+// fixed arguments each, never a shell or a command line from a setting.
+const TEST_COMMANDS = ['npm test', 'pnpm test', 'yarn test', 'bun test', 'make test', 'pytest', 'cargo test', 'go test'] as const
+type TestCommand = (typeof TEST_COMMANDS)[number]
 
 const NUDGE =
   'This work has several steps. Track them with the TaskCreate and TaskUpdate tools (one task per step, marked in_progress and completed as you go) so the person can follow progress.'
@@ -819,20 +824,40 @@ async function compactNow($: EngineInterface) {
 async function runTests($: EngineInterface) {
   const id = rid('f')
   await pushFeed($, { id, at: nowMs(), text: `Running ${opt.testCommand}`, tool: 'atelier', state: 'running' })
-  const r = await $.process.run(['sh', '-c', opt.testCommand], { cwd: root || undefined, timeoutMs: 600_000 })
+  const r = await runTestCommand($, opt.testCommand)
   const isOk = r.exitCode === 0
   await editFeed($, list => list.map(f => (f.id === id ? { ...f, state: isOk ? ('ok' as const) : ('error' as const), text: `Tests ${isOk ? 'passed' : `failed (${r.exitCode})`}` } : f)))
   await recordVerify($, opt.testCommand, isOk)
   $.ui.toast(`Atelier: tests ${isOk ? 'passed' : 'failed'}`)
 }
 
+async function runTestCommand($: EngineInterface, command: TestCommand) {
+  const init = { cwd: root || undefined, timeoutMs: 600_000 }
+  switch (command) {
+    case 'pnpm test':
+      return $.process.run(['pnpm', 'test'], init)
+    case 'yarn test':
+      return $.process.run(['yarn', 'test'], init)
+    case 'bun test':
+      return $.process.run(['bun', 'test'], init)
+    case 'make test':
+      return $.process.run(['make', 'test'], init)
+    case 'pytest':
+      return $.process.run(['pytest'], init)
+    case 'cargo test':
+      return $.process.run(['cargo', 'test'], init)
+    case 'go test':
+      return $.process.run(['go', 'test', './...'], init)
+    default:
+      return $.process.run(['npm', 'test'], init)
+  }
+}
+
 async function commitCheckpoint($: EngineInterface) {
   const answer = await $.ui.ask('Stage every change (git add -A) and commit a checkpoint?', ['Commit', 'Cancel'])
   if (answer !== 'Commit') return
-  const rootId = await read($, rootAtom)
-  const title = (await read($, tasksAtom)).find(t => t.id === rootId)?.title ?? 'work in progress'
   const add = await $.process.run(['git', 'add', '-A'], { cwd: root || undefined })
-  const r = add.exitCode === 0 ? await $.process.run(['git', 'commit', '-m', `checkpoint: ${title}`], { cwd: root || undefined }) : add
+  const r = add.exitCode === 0 ? await $.process.run(['git', 'commit', '-m', 'checkpoint (atelier)'], { cwd: root || undefined }) : add
   $.ui.toast(r.exitCode === 0 ? 'Atelier: checkpoint committed' : `Atelier: commit failed: ${(r.stderr || r.stdout).slice(0, 80)}`)
 }
 
@@ -846,8 +871,7 @@ async function openDiff($: EngineInterface, path: string) {
   try {
     await $.command.run({ command: 'diff' })
   } catch {
-    const r = await $.process.run(['git', 'diff', '--stat', '--', path], { cwd: root || undefined })
-    $.ui.toast(r.stdout.trim().split('\n').at(-1) ?? `no diff for ${basename(path)}`)
+    $.ui.toast(`Atelier: run /diff to see the changes to ${basename(path)}`)
   }
 }
 
@@ -1254,6 +1278,18 @@ async function flushSpend($: EngineInterface) {
 // ---------- agents the mod did not see spawn ----------
 
 let lastSyncAt = 0
+// Spawns seen in agent.spawn, matched to the agent list by description and type.
+type PendingSpawn = { description: string; type: string; prompt: string; model: string; isBackground: boolean; at: number }
+let pendingSpawns: PendingSpawn[] = []
+let syncSoon: Timer | undefined
+
+function scheduleSync($: EngineInterface) {
+  syncSoon?.cancel()
+  syncSoon = $.clock.after(300, () => {
+    syncSoon = undefined
+    void syncAgents($).catch(() => {})
+  })
+}
 
 /**
  * Brings in agents from the engine's list: ones started before the mod loaded
@@ -1273,10 +1309,17 @@ async function syncAgents($: EngineInterface) {
   for (const id of merged.started) {
     const info = list.find(a => a.id === id)
     const title = info?.description || info?.type || 'agent'
+    // A spawn this mod saw carries the agent's instructions and model.
+    const spawn = pendingSpawns.find(p => p.description === info?.description && p.type === info?.type)
+    if (spawn !== undefined) {
+      pendingSpawns = pendingSpawns.filter(p => p !== spawn)
+      await update($, agentsAtom, nodes => nodes.map(n => (n.id === id ? { ...n, model: n.model || spawn.model, isBackground: spawn.isBackground } : n)))
+      await addTimeline($, 'task', `Agent: ${title}`)
+    }
     const isNew = agentTaskOf(await read($, tasksAtom), id) === undefined
     const now = nowMs()
     await setTasks($, tasks => openAgentTask(tasks, id, title, now))
-    if (isNew && opt.isObserverOn && title !== '') void seedAgent($, id, title).catch(() => {})
+    if (isNew && opt.isObserverOn && title !== '') void seedAgent($, id, spawn?.prompt ?? title).catch(() => {})
   }
   // Agents the list calls finished close their tasks, as their turn.complete would.
   for (const n of merged.nodes) {
@@ -1521,33 +1564,17 @@ export const register: Register = (on, options) => {
     return ran
   }).catch(($, e, next) => next(e))
 
-  on('agent.spawn', async ($, e, next) => {
-    const ran = await next(e)
-    const agentId = ran.agentId
-    if (agentId !== undefined) {
-      const node: AgentNode = {
-        id: agentId,
-        type: e.subagentType,
-        model: ran.model ?? e.model ?? e.parentModel,
-        description: e.description,
-        status: 'running',
-        tokens: 0,
-        startedAt: nowMs(),
-        isBackground: e.background,
-      }
-      await update($, agentsAtom, list => [...list.filter(a => a.status === 'running' || nowMs() - (a.endedAt ?? 0) < 10 * 60_000), node].slice(-30))
-      const now = nowMs()
-      stat(d => {
-        d.agents = { [e.subagentType]: { spawns: 1, tokens: 0, ms: 0, fails: 0 } }
-      })
-      await setTasks($, list => (agentTaskOf(list, agentId) === undefined ? [...list, agentTask(agentId, e.description || e.subagentType, now)] : list))
-      if (opt.isObserverOn) void seedAgent($, agentId, e.prompt).catch(() => {})
-      await addTimeline($, 'task', `Agent: ${e.description}`)
-      startTicker($)
-    }
+  // Notes the spawn and passes it on unchanged; the agent's id comes from
+  // the engine's agent list, which the sync below reads right after.
+  on('agent.spawn', ($, e, next) => {
+    pendingSpawns = [...pendingSpawns, { description: e.description, type: e.subagentType, prompt: e.prompt, model: e.model ?? e.parentModel, isBackground: e.background, at: nowMs() }].slice(-10)
+    stat(d => {
+      d.agents = { [e.subagentType]: { spawns: 1, tokens: 0, ms: 0, fails: 0 } }
+    })
+    scheduleSync($)
 
-    return ran
-  }).catch(($, e, next) => next(e))
+    return next(e)
+  })
 
   on('turn.complete', async ($, e, next) => {
     // The steps counted as they came; this is only what they missed.

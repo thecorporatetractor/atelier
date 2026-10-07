@@ -104,14 +104,63 @@ All of them live in `/config` under atelier.
 | Observer debounce | 4000 ms | Quiet time before a partial batch is looked at |
 | Planning nudge | off | Ask Claude to keep its own task list: `nudge-once`, `always` or `describe` |
 | Attention sound | off | Play a sound when Claude waits on you (macOS) |
-| Test command | `npm test` | What `t` runs |
+| Test command | `npm test` | What `t` runs: one of `npm test`, `pnpm test`, `yarn test`, `bun test`, `make test`, `pytest`, `cargo test`, `go test` |
 | Start compact | off | Open in one-line mode |
 
-## 💸 What the observer costs
+## 🔒 What atelier sends, runs and changes
 
-The observer makes small Haiku calls through your own Claude Code session: a few per prompt, batched and debounced, never in the way of a hook. Its token count sits in the Agents section and the stats screen, so the overhead is never hidden. Switch it off in `/config` and the sidebar keeps everything that does not need a model: usage, context, activity, files, agents.
+atelier is meant to be watched, not trusted blindly, so here is everything it does outside its own sidebar.
 
-Nothing leaves your machine except those calls, which go to the same API your session already uses. History is kept locally in the plugin's own store.
+### What it sends, and where
+
+Only one thing leaves your machine: small model calls to **Haiku** (or the observer model you pick), made through Claude Code's own `$.model.complete` and `$.model.classify` calls. They go to the same API, account and provider your session already uses; atelier holds no key and opens no other connection. They run only while the **Observer** setting is on, which it is by default; switch it off in `/config` and atelier sends nothing at all.
+
+| When | What is sent |
+| --- | --- |
+| You send a prompt | The prompt's text (up to 6,000 characters), to name the task and sketch its steps |
+| A subagent starts | Its instructions (up to 6,000 characters), to plan its steps |
+| Every few tool calls | One line per call (tool name, file path, the first 60 characters of a command or search), the task list's titles, and Claude's visible replies (up to 300 characters each) |
+| After a pause in the conversation | What Claude said, what it asked you and what you answered, plus the decisions known so far, to keep the Decisions list current |
+| When a turn ends | Claude's final answer (up to 2,500 characters) and the task list, to close finished steps; the task titles and changed file names, to write a short summary kept for search |
+
+Every call's tokens are counted in the Agents section and on the stats screen.
+
+### What it runs on your machine
+
+| Program | When |
+| --- | --- |
+| Your test runner: `npm test`, `pnpm test`, `yarn test`, `bun test`, `make test`, `pytest`, `cargo test` or `go test ./...`, the one picked in `/config` | Only when you press `t`, in the project folder. It is started by name with those fixed arguments, never through a shell |
+| `git add -A`, then `git commit -m "checkpoint (atelier)"` | Only when you press `k` and confirm the question, in the project folder |
+
+It also runs one Claude Code command: `/diff`, when you press a file in the Files section.
+
+### What it puts in Claude's prompts
+
+atelier submits a prompt only when you press a button for it:
+
+| You press | Claude receives |
+| --- | --- |
+| `n` and send a note | `Note from the person (via the sidebar): ` followed by your note |
+| `x` on a flagged decision, then confirm | `Please revert the change from the decision "<title>: <choice>"` and the observer's flag, asking it to keep to the plan |
+| `⏎ answer` on a pending decision | Nothing is sent: `<decision>: go with <option>.` is put in your prompt box for you to edit or send |
+
+### Hooks that change what Claude sees
+
+Three hooks can change what Claude reads, and all three are **off** until you choose a **Planning nudge** in `/config`:
+
+| Setting | Hook | What it changes |
+| --- | --- | --- |
+| `describe` | `tool.describe` | Adds one sentence to the descriptions of Claude's `TaskCreate` and `TodoWrite` tools, asking it to keep a task list for multi-step work |
+| `always` | `prompt.submit` | Adds one line of context to each prompt you send, asking Claude to track its steps with its task tools |
+| `nudge-once` | `tool.call` | Once per prompt, after six tool calls on multi-step work with no task list, adds the same line after a tool's result |
+
+Every other hook only watches and passes the event on unchanged: `tool.call` (activity, files, tests, retries), `turn.step` (token counting; the response passes through untouched), `agent.spawn` (notes a new subagent), `turn.start`, `turn.complete`, `session.measure`, `session.compact` (usage and history), and `classic.PermissionRequest` / `classic.Notification`, which decide nothing: they show the "waiting on you" banner and toast, and play a sound if you turned that on. `command.run` answers only atelier's own `/atelier` command.
+
+Two buttons act on the session itself: `^C stop` cancels the running turn, and `c` compacts the conversation, the same as `/compact`.
+
+### What it keeps
+
+Everything atelier remembers stays on your machine, in its own plugin store: daily usage totals for the stats screen (the last 120 days), short summaries of past sessions for `/atelier search` (the last 40), your view choices, and the progress of your other open sessions for the "other sessions" line. It reads the session's id, project folder, model name and usage figures from Claude Code to fill those in.
 
 ## 🖥 Where it draws
 

@@ -33,6 +33,16 @@ Every state write redraws the whole sidebar, so writes are the budget.
 - Draw runs of the same colour as one Text, never one element per cell. `tests/perf.test.ts` holds a busy sidebar under 1000 elements and 75 KB.
 - Timers are kept in module variables and cancelled before they are started again.
 
+## Staying publishable
+
+atelier is published in the Claude plugin directory, whose review checks the code. Keep to these:
+
+- A hook that observes passes the event on unchanged with `return next(e)`. Hooks on `agent.spawn`, `agent.register`, `command.run` (other than atelier's own command), `config.set`, `fs.write` and permission checks never change or answer the event.
+- Programs run by name with fixed arguments written in the call (`$.process.run(['git', 'add', '-A'])`), never through a shell and never from a string a setting holds. A choice the person makes picks one of a fixed set of calls.
+- Anything new the mod sends, runs, submits into a prompt, or changes in what Claude reads goes in the README's "What atelier sends, runs and changes" section in the same change.
+- No secrets read from the machine: a value the mod needs from the person is a `userConfig` option (`sensitive: true` for anything secret).
+- The `types` field in `plugin.json` stays: `claude plugin validate` checks the state contract through it, though Claude Code ignores it at load time.
+
 ## How work is split
 
 - **Logic**: hooks, observer prompts, data, `model.ts`, the state contract.
