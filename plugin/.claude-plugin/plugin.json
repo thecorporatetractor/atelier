@@ -6,53 +6,5 @@
     "name": "thecorporatetractor"
   },
   "license": "MIT",
-  "types": "./types/index.d.ts",
-  "userConfig": {
-    "observer": {
-      "type": "boolean",
-      "title": "Observer",
-      "description": "Run the Haiku observer that infers tasks and progress",
-      "default": true
-    },
-    "observerModel": {
-      "type": "string",
-      "title": "Observer model",
-      "description": "Model alias or id the observer uses",
-      "default": "haiku"
-    },
-    "batchSize": {
-      "type": "number",
-      "title": "Observer batch size",
-      "description": "Tool calls buffered before the observer runs",
-      "default": 5
-    },
-    "debounceMs": {
-      "type": "number",
-      "title": "Observer debounce (ms)",
-      "description": "Quiet time before a partial batch is flushed",
-      "default": 4000
-    },
-    "testCommand": {
-      "type": "string",
-      "title": "Test command",
-      "description": "What the Run tests button runs: one of the listed test runners, started by name in the project folder",
-      "options": [
-        "npm test",
-        "pnpm test",
-        "yarn test",
-        "bun test",
-        "make test",
-        "pytest",
-        "cargo test",
-        "go test"
-      ],
-      "default": "npm test"
-    },
-    "compactDefault": {
-      "type": "boolean",
-      "title": "Start compact",
-      "description": "Open the sidebar in compact mode",
-      "default": false
-    }
-  }
+  "types": "./types/index.d.ts"
 }
