@@ -5,8 +5,8 @@ import { describe, expect, test } from 'claude-code/testing'
 import type { AgentNode, CacheView, FeedItem, RateView, Task, UsageView } from '../types'
 import { BURNED, harness, ROOT, streamStep, T0, tools, USAGE } from './support/harness'
 
-// One step's 200 output tokens, sampled over the sampler's 1.2s tick.
-const STEP_RATE = 200 / 1.2
+// One step's 200 output tokens, sampled over the sampler's 3s tick.
+const STEP_RATE = 200 / 3
 
 const OFF = { options: { observer: false } }
 
@@ -35,7 +35,7 @@ describe('usage reaches the sidebar', () => {
     await $.session.start({ cwd: ROOT, surface: 'terminal', isInteractive: true })
     await $.turn.start({ text: 'go', turnId: 't1' })
     await drain($.turn.step({ turnId: 't1', index: 0, model: 'claude-test', messageCount: 1 }))
-    await h.clock.advance(1200)
+    await h.clock.advance(3000)
 
     const rate = h.state<RateView>('rate')
     expect(rate?.tokens).toBe(BURNED)
@@ -73,7 +73,7 @@ describe('usage reaches the sidebar', () => {
     h.listed.push({ id: 'a1', type: 'Explore', description: 'Map the code', status: 'running' })
     await $.agent.spawn(SPAWN)
     // The sync right after a spawn reads the agent list.
-    await h.clock.advance(400)
+    await h.clock.advance(1100)
 
     expect(h.state<AgentNode[]>('agents')?.find(a => a.id === 'a1')?.status).toBe('running')
     expect(h.state<Task[]>('tasks')?.find(t => t.agentId === 'a1')?.title).toBe('Map the code')
@@ -82,7 +82,7 @@ describe('usage reaches the sidebar', () => {
     // A subagent's call: the kit's typing has no agentId, the event carries it.
     await $.tool.call({ tool: 'Read', file_path: `${ROOT}/src/a.ts`, agentId: 'a1' } as never)
     await tool.end($)
-    await h.clock.advance(1200)
+    await h.clock.advance(3000)
 
     const node = h.state<AgentNode[]>('agents')?.find(a => a.id === 'a1')
     expect(node?.tokens).toBe(BURNED)
@@ -110,7 +110,7 @@ describe('usage reaches the sidebar', () => {
     expect(h.state<Task[]>('tasks')?.find(t => t.agentId === 'bg1')?.status).toBe('running')
 
     await drain($.turn.step({ turnId: 'bg-t', index: 0, model: 'claude-fable', messageCount: 1, agentId: 'bg1' }))
-    await h.clock.advance(1200)
+    await h.clock.advance(3000)
     const node = h.state<AgentNode[]>('agents')?.find(a => a.id === 'bg1')
     expect(node?.tokens).toBe(BURNED)
     expect(node?.model).toBe('claude-fable')
@@ -140,7 +140,7 @@ describe('usage reaches the sidebar', () => {
     await $.session.start({ cwd: ROOT, surface: 'terminal', isInteractive: true })
     await $.tool.call({ tool: 'Bash', command: 'ls' })
     await tool.end($)
-    await h.clock.advance(400)
+    await h.clock.advance(1100)
     expect(h.state<FeedItem[]>('feed')?.at(-1)?.state).toBe('ok')
     expect(T0).toBeGreaterThan(0)
   })

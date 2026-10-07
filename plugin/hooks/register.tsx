@@ -95,8 +95,8 @@ const TIMELINE_MAX = 200
 const FILES_MAX = 100
 const SUMMARIES_MAX = 40
 const PEER_TTL = 15 * 60_000
-const RATE_MS = 1200
-const RATE_WINDOW = 50
+const RATE_MS = 3000
+const RATE_WINDOW = 20
 const CACHE_TTL_MS = 5 * 60_000
 const SPEND_DAYS = 62
 
@@ -481,7 +481,7 @@ let syncTimer: Timer | undefined
 // The busiest values (feed, current call, each agent's tool) change on every
 // tool call; they are kept here and published together at most every 300ms,
 // since every state write redraws the whole sidebar.
-const PUBLISH_MS = 300
+const PUBLISH_MS = 1000
 let liveFeed: FeedItem[] | undefined
 let isFeedDirty = false
 let liveCurrent: string | null | undefined
@@ -619,7 +619,7 @@ async function stepTicker($: EngineInterface) {
     shown.set(t.id, next)
   }
   const isRunning = isTurnRunning || liveAgents(agents, lastActivity, nowMs(), STALE_MS).length > 0
-  if (isMoving || (isRunning && tick % 4 === 0)) $.ui.invalidate('ui.render')
+  if (isMoving || (isRunning && tick % 20 === 0)) $.ui.invalidate('ui.render')
   if (!isMoving && !isRunning && ticker !== undefined) {
     ticker.cancel()
     ticker = undefined

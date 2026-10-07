@@ -88,7 +88,7 @@ describe('compliance', () => {
     expect((seen as { description: string }).description).toBe('Map the code')
     // The engine lists the new agent; the sync right after the spawn finds it.
     h.listed.push({ id: 'a1', type: 'Explore', description: 'Map the code', status: 'running' })
-    await h.clock.advance(400)
+    await h.clock.advance(1100)
     const node = h.state<AgentNode[]>('agents')?.find(a => a.id === 'a1')
     expect(node?.status).toBe('running')
     expect(node?.model).toBe('claude-test')

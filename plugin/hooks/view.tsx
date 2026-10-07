@@ -57,9 +57,9 @@ export const HEAT: Record<HeatCategory, string> = {
   empty: '#221e1a',
 }
 
-/** The design's width in columns; the chart's window is 50 samples (60s). */
+/** The design's width in columns; the chart's window is 20 samples of 3s (60s). */
 export const DESIGN_WIDTH = 52
-const CHART_SAMPLES = 50
+const CHART_SAMPLES = 20
 /** The tok/s chart's height in rows: eighth blocks give 8 levels a row. */
 export const CHART_ROWS = 4
 

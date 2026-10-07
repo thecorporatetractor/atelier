@@ -226,7 +226,7 @@ function usageSection(doc: Doc, d: SidebarData) {
     C.track,
   )
   const chartW = SVG_COLS - 2
-  const window = [...Array(Math.max(0, 50 - samples.length)).fill(0), ...samples.slice(-50)] as number[]
+  const window = [...Array(Math.max(0, 20 - samples.length)).fill(0), ...samples.slice(-20)] as number[]
   const shown = Array.from({ length: chartW }, (_, j) => window[Math.floor((j * window.length) / chartW)] ?? 0)
   const scale = Math.max(1, peak)
   // The chart is CHART_ROWS rows tall, the bars drawn from its floor.
@@ -430,7 +430,7 @@ function agentsSection(doc: Doc, d: SidebarData) {
     )
     // Its own small tok/s chart, one row tall, under the name.
     const width = SVG_COLS - 3
-    const window = [...Array(Math.max(0, 50 - samples.length)).fill(0), ...samples.slice(-50)] as number[]
+    const window = [...Array(Math.max(0, 20 - samples.length)).fill(0), ...samples.slice(-20)] as number[]
     const shown = Array.from({ length: width }, (_, j) => window[Math.floor((j * window.length) / width)] ?? 0)
     const scale = Math.max(1, peak)
     const chartH = LH - 4

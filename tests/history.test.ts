@@ -71,7 +71,7 @@ describe('stats history', () => {
     h.listed.push({ id: 'a1', type: 'Explore', description: 'Map the code', status: 'running' })
     await $.agent.spawn(SPAWN)
     // The sync right after a spawn reads the agent list.
-    await h.clock.advance(400)
+    await h.clock.advance(1100)
     await drain($.turn.step({ turnId: 'a1-t', index: 0, model: 'claude-haiku-test', messageCount: 1, agentId: 'a1' }))
     await $.session.measure({ context: { tokens: 1, window: 200_000 }, rateLimits: [], cost: { usd: 1.75 }, changed: ['cost'] })
     await $.turn.complete({ turnId: 'a1-t', agentId: 'a1', answer: 'ok', durationMs: 3000, isAborted: false, reason: 'answer', usage: USAGE })

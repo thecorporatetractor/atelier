@@ -88,8 +88,8 @@ test('Activity keeps at least eight past items', { options: { observer: false } 
   const tool = tools(on)
   for (let i = 0; i < 12; i += 1) await $.tool.call({ tool: 'Bash', command: `echo step${i}` })
   await tool.end($)
-  // The feed is published in batches, at most every 300ms.
-  await clock.advance(400)
+  // The feed is published in batches, at most every second.
+  await clock.advance(1100)
   const ui = await $.ui.mount({ plugin: 'atelier', surface: 'terminal', component: 'Pane', requestId: 'atelier', props: PROPS })
   const shown = await ui.findAll({ type: 'Text', text: /\$ echo step\d+/ })
   expect(shown.length).toBeGreaterThanOrEqual(8)
@@ -104,7 +104,7 @@ test('failing tool calls reach the feed and a spin loop warns', { options: { obs
     await $.tool.call({ tool: 'Bash', command: 'npm run flaky' })
     await tool.end($)
   }
-  await clock.advance(400)
+  await clock.advance(1100)
   const ui = await $.ui.mount({ plugin: 'atelier', surface: 'terminal', component: 'Pane', requestId: 'atelier', props: PROPS })
   expect(await ui.find({ type: 'Text', text: /retried this 3 times/ })).toBeDefined()
   // Three identical calls fold into one Activity line with a count.
@@ -172,7 +172,7 @@ test('an edit the engine did not diff still counts its lines', { options: { obse
   )
   await $.tool.call({ tool: 'Edit', file_path: '/p/src/a.ts', old_string: 'keep\nold', new_string: 'keep\nnew\nmore' })
   await tool.end($)
-  await clock.advance(400)
+  await clock.advance(1100)
   const ui = await $.ui.mount({ plugin: 'atelier', surface: 'terminal', component: 'Pane', requestId: 'atelier', props: PROPS })
   expect(await ui.find({ type: 'Text', text: /\+2 −1/ })).toBeDefined()
   expect(await ui.find({ type: 'Text', text: /Edit \/p\/src\/a\.ts/ })).toBeDefined()
@@ -209,21 +209,21 @@ test("a subagent's steps count live, and its turn's end adds nothing twice", { o
     return { turnId: e.turnId, index: e.index, answer: 'hi', toolUses: [], stopReason: 'end_turn' as const, usage: USAGE }
   })
   await $.agent.spawn(SPAWN)
-  await clock.advance(400)
+  await clock.advance(1100)
   const step = $.turn.step({ turnId: 'a1-t', index: 0, model: 'claude-test', messageCount: 1, agentId: 'a1' })
   for await (const _c of step) {
     // drained
   }
   await step.result
-  await clock.advance(1200)
+  await clock.advance(3000)
   const ui = await $.ui.mount({ plugin: 'atelier', surface: 'terminal', component: 'Pane', requestId: 'atelier', props: PROPS })
   // 1000 + 200 burned tokens on the agent's row, and a tok/s sample from its step.
   expect(await ui.find({ type: 'Text', text: /Explore.*1\.2k/ })).toBeDefined()
   // Its own chart row sits under it, scaled to its own peak.
   expect(await ui.find({ type: 'Box', key: 'agent-chart-a1' })).toBeDefined()
-  // 200 output tokens over the 1.2s tick: 167 tok/s.
-  expect(await ui.find({ type: 'Text', text: /peak 167 / })).toBeDefined()
-  expect(await ui.find({ type: 'Text', text: /^167$/ })).toBeDefined()
+  // 200 output tokens over the 3s tick: 67 tok/s.
+  expect(await ui.find({ type: 'Text', text: /peak 67 / })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /^67$/ })).toBeDefined()
   expect(await ui.find({ type: 'Text', text: /● hot/ })).toBeDefined()
   await $.turn.complete({ turnId: 'a1-t', agentId: 'a1', answer: 'hi', durationMs: 1200, isAborted: false, reason: 'answer', usage: USAGE })
   await ui.redraw()
@@ -241,7 +241,7 @@ test('the status block says Working while only a subagent runs', { options: { ob
   expect(await before.find({ type: 'Text', text: /^Idle$/ })).toBeDefined()
   await before.unmount()
   await $.agent.spawn(SPAWN)
-  await clock.advance(400)
+  await clock.advance(1100)
   const ui = await $.ui.mount({ plugin: 'atelier', surface: 'terminal', component: 'Pane', requestId: 'atelier', props: PROPS })
   expect(await ui.find({ type: 'Text', text: /^Working$/ })).toBeDefined()
   expect(await ui.find({ type: 'Text', text: /1 agent/ })).toBeDefined()
