@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# Type-checks, validates and tests the plugin. Tests live outside the shipped
+# plugin/ folder, so they are staged next to a copy of it in a temporary folder.
+set -euo pipefail
+root="$(cd "$(dirname "$0")/.." && pwd)"
+stage="$(mktemp -d)"
+trap 'rm -rf "$stage"' EXIT
+cp -r "$root/plugin/." "$stage/"
+cp -r "$root/tests" "$stage/tests"
+# The engine lays its types beside a loaded mod; reuse them when present.
+if [ -d "$root/plugin/.claude-plugin/types" ]; then cp -r "$root/plugin/.claude-plugin/types" "$stage/.claude-plugin/"; fi
+printf '{ "extends": "./.claude-plugin/types/tsconfig.json" }\n' > "$stage/tsconfig.json"
+(cd "$stage" && npx -y -p typescript@5 tsc -p .)
+claude plugin validate "$root/plugin" --strict
+claude plugin validate "$root" --strict
+claude plugin test "$stage"
+# The repository's front page shows the same README the plugin ships.
+cmp -s "$root/README.md" "$root/plugin/README.md" || { echo "README.md and plugin/README.md differ: copy plugin/README.md to the root" >&2; exit 1; }

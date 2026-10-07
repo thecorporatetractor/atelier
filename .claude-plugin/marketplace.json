@@ -7,7 +7,7 @@
   "plugins": [
     {
       "name": "atelier",
-      "source": "./"
+      "source": "./plugin"
     }
   ]
 }

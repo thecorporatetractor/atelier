@@ -4,16 +4,22 @@ atelier is a Claude Code mod: a plugin of function hooks, today a docked sidebar
 
 ## Layout
 
+Only `plugin/` ships: it is what the marketplace file points at and what the directory reviews. Everything else is for working on it.
+
 | Path | What lives there |
 | --- | --- |
-| `hooks/register.tsx` | Every hook, the timers, all state writes, the `ui.render` hook |
-| `hooks/view.tsx` | The terminal drawing: `drawSidebar(els, data, actions)` |
-| `hooks/svg.ts` | The same layout as one Svg, for desktop, VS Code and mobile |
-| `hooks/stats.ts` | The stats screen's rows |
-| `hooks/lib/model.ts` | Pure logic: tasks, progress, decisions, stats, agents |
-| `hooks/lib/*.ts` | Pure helpers for drawing: runs, wrapping, raster cells |
-| `types/index.d.ts` | The `$.state` contract: every value the sidebar keeps |
-| `tests/` | `claude plugin test` suites |
+| `plugin/hooks/register.tsx` | Every hook, the timers, all state writes, the `ui.render` hook |
+| `plugin/hooks/view.tsx` | The terminal drawing: `drawSidebar(els, data, actions)` |
+| `plugin/hooks/svg.ts` | The same layout as one Svg, for desktop, VS Code and mobile |
+| `plugin/hooks/stats.ts` | The stats screen's rows |
+| `plugin/hooks/lib/model.ts` | Pure logic: tasks, progress, decisions, stats, agents |
+| `plugin/hooks/lib/support.ts` | Options, the observer's prompts, small pure helpers |
+| `plugin/hooks/lib/*.ts` | Pure helpers for drawing: runs, wrapping, raster cells |
+| `plugin/types/index.d.ts` | The `$.state` contract: every value the sidebar keeps |
+| `plugin/README.md` | The plugin's README, copied to the root as the repository's front page |
+| `tests/` | `claude plugin test` suites; imports are written as if the tests sat in `plugin/` |
+| `scripts/check` | Stages `plugin/` and `tests/` together, then type-checks, validates and tests |
+| `.claude-plugin/marketplace.json` | Makes the repository installable; its one entry's source is `./plugin` |
 
 ## Rules the engine enforces
 
@@ -57,6 +63,7 @@ atelier is published in the Claude plugin directory, whose review reads the code
 
 ### Files
 
+- Nothing but the plugin goes in `plugin/`: no tests, scripts, fixtures or notes. Tests deliberately break the hook rules (they stand in for the engine), so they must never ship.
 - Ship readable source only: TypeScript as written, no bundles, no minified or generated code. Keep every file under 64 KB; move pure code from `register.tsx` into `hooks/lib/` before it grows past that.
 - No binary files besides `.claude-plugin/icon.png`: no sounds, fonts or archives. An image must be a real PNG or JPEG with the matching extension.
 - `plugin.json` keeps `license` (MIT) and `types`. The directory warns that Claude Code ignores `types`; it stays because `claude plugin validate` checks the state contract through it.
@@ -72,7 +79,7 @@ The README's "What atelier sends, runs and changes" section is part of the contr
 
 ### Before pushing
 
-Run the three checks under "Before you commit", then re-run the directory's validation on the pushed commit. Fix what it reports here, and add any new rule it teaches to this section.
+Run `./scripts/check`, then re-run the directory's validation on the pushed commit. Fix what it reports here, and add any new rule it teaches to this section.
 
 ## How work is split
 
@@ -86,12 +93,10 @@ Keep a change on one side of that line where you can, and agree the data contrac
 From the repository root:
 
 ```sh
-npx -y -p typescript@5 tsc -p .
-claude plugin validate . --strict
-claude plugin test .
+./scripts/check
 ```
 
-All three must pass. New behaviour comes with a test: pure logic in `tests/*.test.ts`, drawing by mounting the Pane with `$.ui.mount` on each surface it supports. Leave no probe or debug tests behind.
+It type-checks, validates (`--strict`, the plugin and the marketplace) and runs every test; all must pass. New behaviour comes with a test: pure logic in `tests/*.test.ts`, drawing by mounting the Pane with `$.ui.mount` on each surface it supports. Leave no probe or debug tests behind. After editing `plugin/README.md`, copy it to `README.md` (the check fails while they differ).
 
 One change per commit, with a message that says what changed and why, so any change can be reverted on its own.
 
