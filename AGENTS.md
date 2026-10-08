@@ -57,6 +57,7 @@ atelier is published in the Claude plugin directory, whose review reads the code
 
 The directory reads the name `$` as the capability object everywhere in a file that declares a hook, and checks every use of it from the source as written (finding `MOD_CAPABILITY_USE_NOT_PLAIN`):
 
+- A `$` call is never wrapped: no parentheses around it, no cast, no `!`, `?.`, `.prop` or `[...]` on its result in the same expression. Put the result in a constant first: `const held = await $.state.get(TASKS)`, then `return held.value ?? []`. The same goes for our own helpers that take `$`: `const tasksNow = await readTasks($)`, then use `tasksNow`. The directory reports such a wrap where a hook reaches the helper, not on the helper's own line.
 - A call that takes `$` stands alone: `syncAgents($)`, never `syncAgents($).catch(...)` or `.then(...)` chained on it. Background work goes through `quietly(work($))`, which drops a failure without throwing; a chain of steps becomes its own top-level function (`afterTurn`, `startStats`).
 - No `$` anywhere else in `register.tsx`: no template strings (`${...}`), no `$` in a regular expression. Build strings with `+` and look names up in a `Set`.
 - `$`, `e` and `next` are the hook's parameters and nothing else, file-wide: no variable, parameter, destructured name or callback argument elsewhere in `register.tsx` may be called `e` or `next` (findings `MOD_PERMISSION_ANSWER_UNREAD`, `MOD_ANSWERS_PERMISSION`). Helpers name their value after what it is (`eased`, `applied`, `saved`).

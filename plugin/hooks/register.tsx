@@ -107,119 +107,136 @@ type Held = PluginState['atelier']
 const TASKS = { plugin: 'atelier', key: 'tasks' } as const
 
 async function readTasks($: EngineInterface): Promise<Held['tasks']> {
-  return (await $.state.get(TASKS)).value ?? []
+  const held = await $.state.get(TASKS)
+  return held.value ?? []
 }
 
 async function updateTasks($: EngineInterface, change: (value: Held['tasks']) => Held['tasks']): Promise<Held['tasks']> {
   for (;;) {
     const held = await $.state.get(TASKS)
     const value = change(held.value ?? [])
-    if ((await $.state.set(TASKS, value, { ifVersion: held.version })).isSet) return value
+    const written = await $.state.set(TASKS, value, { ifVersion: held.version })
+    if (written.isSet) return value
   }
 }
 
 const ROOT = { plugin: 'atelier', key: 'rootId' } as const
 
 async function readRoot($: EngineInterface): Promise<Held['rootId']> {
-  return (await $.state.get(ROOT)).value ?? null
+  const held = await $.state.get(ROOT)
+  return held.value ?? null
 }
 
 async function updateRoot($: EngineInterface, change: (value: Held['rootId']) => Held['rootId']): Promise<Held['rootId']> {
   for (;;) {
     const held = await $.state.get(ROOT)
     const value = change(held.value ?? null)
-    if ((await $.state.set(ROOT, value, { ifVersion: held.version })).isSet) return value
+    const written = await $.state.set(ROOT, value, { ifVersion: held.version })
+    if (written.isSet) return value
   }
 }
 
 const AGENTS = { plugin: 'atelier', key: 'agents' } as const
 
 async function readAgents($: EngineInterface): Promise<Held['agents']> {
-  return (await $.state.get(AGENTS)).value ?? []
+  const held = await $.state.get(AGENTS)
+  return held.value ?? []
 }
 
 async function updateAgents($: EngineInterface, change: (value: Held['agents']) => Held['agents']): Promise<Held['agents']> {
   for (;;) {
     const held = await $.state.get(AGENTS)
     const value = change(held.value ?? [])
-    if ((await $.state.set(AGENTS, value, { ifVersion: held.version })).isSet) return value
+    const written = await $.state.set(AGENTS, value, { ifVersion: held.version })
+    if (written.isSet) return value
   }
 }
 
 const USAGE = { plugin: 'atelier', key: 'usage' } as const
 
 async function readUsage($: EngineInterface): Promise<Held['usage']> {
-  return (await $.state.get(USAGE)).value ?? null
+  const held = await $.state.get(USAGE)
+  return held.value ?? null
 }
 
 async function updateUsage($: EngineInterface, change: (value: Held['usage']) => Held['usage']): Promise<Held['usage']> {
   for (;;) {
     const held = await $.state.get(USAGE)
     const value = change(held.value ?? null)
-    if ((await $.state.set(USAGE, value, { ifVersion: held.version })).isSet) return value
+    const written = await $.state.set(USAGE, value, { ifVersion: held.version })
+    if (written.isSet) return value
   }
 }
 
 const FEED = { plugin: 'atelier', key: 'feed' } as const
 
 async function readFeed($: EngineInterface): Promise<Held['feed']> {
-  return (await $.state.get(FEED)).value ?? []
+  const held = await $.state.get(FEED)
+  return held.value ?? []
 }
 
 async function updateFeed($: EngineInterface, change: (value: Held['feed']) => Held['feed']): Promise<Held['feed']> {
   for (;;) {
     const held = await $.state.get(FEED)
     const value = change(held.value ?? [])
-    if ((await $.state.set(FEED, value, { ifVersion: held.version })).isSet) return value
+    const written = await $.state.set(FEED, value, { ifVersion: held.version })
+    if (written.isSet) return value
   }
 }
 
 const CURRENT = { plugin: 'atelier', key: 'current' } as const
 
 async function readCurrent($: EngineInterface): Promise<Held['current']> {
-  return (await $.state.get(CURRENT)).value ?? null
+  const held = await $.state.get(CURRENT)
+  return held.value ?? null
 }
 
 async function updateCurrent($: EngineInterface, change: (value: Held['current']) => Held['current']): Promise<Held['current']> {
   for (;;) {
     const held = await $.state.get(CURRENT)
     const value = change(held.value ?? null)
-    if ((await $.state.set(CURRENT, value, { ifVersion: held.version })).isSet) return value
+    const written = await $.state.set(CURRENT, value, { ifVersion: held.version })
+    if (written.isSet) return value
   }
 }
 
 const FILES = { plugin: 'atelier', key: 'files' } as const
 
 async function readFiles($: EngineInterface): Promise<Held['files']> {
-  return (await $.state.get(FILES)).value ?? []
+  const held = await $.state.get(FILES)
+  return held.value ?? []
 }
 
 async function updateFiles($: EngineInterface, change: (value: Held['files']) => Held['files']): Promise<Held['files']> {
   for (;;) {
     const held = await $.state.get(FILES)
     const value = change(held.value ?? [])
-    if ((await $.state.set(FILES, value, { ifVersion: held.version })).isSet) return value
+    const written = await $.state.set(FILES, value, { ifVersion: held.version })
+    if (written.isSet) return value
   }
 }
 
 const ALERTS = { plugin: 'atelier', key: 'alerts' } as const
 
 async function readAlerts($: EngineInterface): Promise<Held['alerts']> {
-  return (await $.state.get(ALERTS)).value ?? { attention: null, spins: [], drift: null }
+  const held = await $.state.get(ALERTS)
+  return held.value ?? { attention: null, spins: [], drift: null }
 }
 
 async function updateAlerts($: EngineInterface, change: (value: Held['alerts']) => Held['alerts']): Promise<Held['alerts']> {
   for (;;) {
     const held = await $.state.get(ALERTS)
     const value = change(held.value ?? { attention: null, spins: [], drift: null })
-    if ((await $.state.set(ALERTS, value, { ifVersion: held.version })).isSet) return value
+    const written = await $.state.set(ALERTS, value, { ifVersion: held.version })
+    if (written.isSet) return value
   }
 }
 
 const VIEW = { plugin: 'atelier', key: 'view' } as const
 
 async function readView($: EngineInterface): Promise<Held['view']> {
-  return (await $.state.get(VIEW)).value ?? {
+  const held = await $.state.get(VIEW)
+  return held.value ?? {
   isCompact: false,
   isNoteOpen: false,
   usageTab: 'limits',
@@ -236,14 +253,16 @@ async function updateView($: EngineInterface, change: (value: Held['view']) => H
   usageTab: 'limits',
   isDetail: false,
 })
-    if ((await $.state.set(VIEW, value, { ifVersion: held.version })).isSet) return value
+    const written = await $.state.set(VIEW, value, { ifVersion: held.version })
+    if (written.isSet) return value
   }
 }
 
 const OBSERVER = { plugin: 'atelier', key: 'observer' } as const
 
 async function readObserver($: EngineInterface): Promise<Held['observer']> {
-  return (await $.state.get(OBSERVER)).value ?? {
+  const held = await $.state.get(OBSERVER)
+  return held.value ?? {
   calls: 0,
   inputTokens: 0,
   outputTokens: 0,
@@ -262,28 +281,32 @@ async function updateObserver($: EngineInterface, change: (value: Held['observer
   lastKind: null,
   dropped: 0,
 })
-    if ((await $.state.set(OBSERVER, value, { ifVersion: held.version })).isSet) return value
+    const written = await $.state.set(OBSERVER, value, { ifVersion: held.version })
+    if (written.isSet) return value
   }
 }
 
 const TIMELINE = { plugin: 'atelier', key: 'timeline' } as const
 
 async function readTimeline($: EngineInterface): Promise<Held['timeline']> {
-  return (await $.state.get(TIMELINE)).value ?? []
+  const held = await $.state.get(TIMELINE)
+  return held.value ?? []
 }
 
 async function updateTimeline($: EngineInterface, change: (value: Held['timeline']) => Held['timeline']): Promise<Held['timeline']> {
   for (;;) {
     const held = await $.state.get(TIMELINE)
     const value = change(held.value ?? [])
-    if ((await $.state.set(TIMELINE, value, { ifVersion: held.version })).isSet) return value
+    const written = await $.state.set(TIMELINE, value, { ifVersion: held.version })
+    if (written.isSet) return value
   }
 }
 
 const CONFIDENCE = { plugin: 'atelier', key: 'confidence' } as const
 
 async function readConfidence($: EngineInterface): Promise<Held['confidence']> {
-  return (await $.state.get(CONFIDENCE)).value ?? {
+  const held = await $.state.get(CONFIDENCE)
+  return held.value ?? {
   untestedEdits: 0,
   testsPassed: null,
   typecheckClean: null,
@@ -298,147 +321,168 @@ async function updateConfidence($: EngineInterface, change: (value: Held['confid
   testsPassed: null,
   typecheckClean: null,
 })
-    if ((await $.state.set(CONFIDENCE, value, { ifVersion: held.version })).isSet) return value
+    const written = await $.state.set(CONFIDENCE, value, { ifVersion: held.version })
+    if (written.isSet) return value
   }
 }
 
 const PEERS = { plugin: 'atelier', key: 'peers' } as const
 
 async function readPeers($: EngineInterface): Promise<Held['peers']> {
-  return (await $.state.get(PEERS)).value ?? []
+  const held = await $.state.get(PEERS)
+  return held.value ?? []
 }
 
 async function updatePeers($: EngineInterface, change: (value: Held['peers']) => Held['peers']): Promise<Held['peers']> {
   for (;;) {
     const held = await $.state.get(PEERS)
     const value = change(held.value ?? [])
-    if ((await $.state.set(PEERS, value, { ifVersion: held.version })).isSet) return value
+    const written = await $.state.set(PEERS, value, { ifVersion: held.version })
+    if (written.isSet) return value
   }
 }
 
 const HANDOFF = { plugin: 'atelier', key: 'handoff' } as const
 
 async function readHandoff($: EngineInterface): Promise<Held['handoff']> {
-  return (await $.state.get(HANDOFF)).value ?? null
+  const held = await $.state.get(HANDOFF)
+  return held.value ?? null
 }
 
 async function updateHandoff($: EngineInterface, change: (value: Held['handoff']) => Held['handoff']): Promise<Held['handoff']> {
   for (;;) {
     const held = await $.state.get(HANDOFF)
     const value = change(held.value ?? null)
-    if ((await $.state.set(HANDOFF, value, { ifVersion: held.version })).isSet) return value
+    const written = await $.state.set(HANDOFF, value, { ifVersion: held.version })
+    if (written.isSet) return value
   }
 }
 
 const SEARCH = { plugin: 'atelier', key: 'search' } as const
 
 async function readSearch($: EngineInterface): Promise<Held['search']> {
-  return (await $.state.get(SEARCH)).value ?? null
+  const held = await $.state.get(SEARCH)
+  return held.value ?? null
 }
 
 async function updateSearch($: EngineInterface, change: (value: Held['search']) => Held['search']): Promise<Held['search']> {
   for (;;) {
     const held = await $.state.get(SEARCH)
     const value = change(held.value ?? null)
-    if ((await $.state.set(SEARCH, value, { ifVersion: held.version })).isSet) return value
+    const written = await $.state.set(SEARCH, value, { ifVersion: held.version })
+    if (written.isSet) return value
   }
 }
 
 const DECISIONS = { plugin: 'atelier', key: 'decisions' } as const
 
 async function readDecisions($: EngineInterface): Promise<Held['decisions']> {
-  return (await $.state.get(DECISIONS)).value ?? []
+  const held = await $.state.get(DECISIONS)
+  return held.value ?? []
 }
 
 async function updateDecisions($: EngineInterface, change: (value: Held['decisions']) => Held['decisions']): Promise<Held['decisions']> {
   for (;;) {
     const held = await $.state.get(DECISIONS)
     const value = change(held.value ?? [])
-    if ((await $.state.set(DECISIONS, value, { ifVersion: held.version })).isSet) return value
+    const written = await $.state.set(DECISIONS, value, { ifVersion: held.version })
+    if (written.isSet) return value
   }
 }
 
 const RATE = { plugin: 'atelier', key: 'rate' } as const
 
 async function readRate($: EngineInterface): Promise<Held['rate']> {
-  return (await $.state.get(RATE)).value ?? { samples: [], peak: 0, sum: 0, count: 0, tokens: 0 }
+  const held = await $.state.get(RATE)
+  return held.value ?? { samples: [], peak: 0, sum: 0, count: 0, tokens: 0 }
 }
 
 async function updateRate($: EngineInterface, change: (value: Held['rate']) => Held['rate']): Promise<Held['rate']> {
   for (;;) {
     const held = await $.state.get(RATE)
     const value = change(held.value ?? { samples: [], peak: 0, sum: 0, count: 0, tokens: 0 })
-    if ((await $.state.set(RATE, value, { ifVersion: held.version })).isSet) return value
+    const written = await $.state.set(RATE, value, { ifVersion: held.version })
+    if (written.isSet) return value
   }
 }
 
 const CACHE = { plugin: 'atelier', key: 'cache' } as const
 
 async function readCache($: EngineInterface): Promise<Held['cache']> {
-  return (await $.state.get(CACHE)).value ?? { lastHitAt: null, ttlMs: CACHE_TTL_MS, readTokens: 0, inputTokens: 0 }
+  const held = await $.state.get(CACHE)
+  return held.value ?? { lastHitAt: null, ttlMs: CACHE_TTL_MS, readTokens: 0, inputTokens: 0 }
 }
 
 async function updateCache($: EngineInterface, change: (value: Held['cache']) => Held['cache']): Promise<Held['cache']> {
   for (;;) {
     const held = await $.state.get(CACHE)
     const value = change(held.value ?? { lastHitAt: null, ttlMs: CACHE_TTL_MS, readTokens: 0, inputTokens: 0 })
-    if ((await $.state.set(CACHE, value, { ifVersion: held.version })).isSet) return value
+    const written = await $.state.set(CACHE, value, { ifVersion: held.version })
+    if (written.isSet) return value
   }
 }
 
 const CONTEXT = { plugin: 'atelier', key: 'context' } as const
 
 async function readContext($: EngineInterface): Promise<Held['context']> {
-  return (await $.state.get(CONTEXT)).value ?? null
+  const held = await $.state.get(CONTEXT)
+  return held.value ?? null
 }
 
 async function updateContext($: EngineInterface, change: (value: Held['context']) => Held['context']): Promise<Held['context']> {
   for (;;) {
     const held = await $.state.get(CONTEXT)
     const value = change(held.value ?? null)
-    if ((await $.state.set(CONTEXT, value, { ifVersion: held.version })).isSet) return value
+    const written = await $.state.set(CONTEXT, value, { ifVersion: held.version })
+    if (written.isSet) return value
   }
 }
 
 const SPEND = { plugin: 'atelier', key: 'spend' } as const
 
 async function readSpend($: EngineInterface): Promise<Held['spend']> {
-  return (await $.state.get(SPEND)).value ?? null
+  const held = await $.state.get(SPEND)
+  return held.value ?? null
 }
 
 async function updateSpend($: EngineInterface, change: (value: Held['spend']) => Held['spend']): Promise<Held['spend']> {
   for (;;) {
     const held = await $.state.get(SPEND)
     const value = change(held.value ?? null)
-    if ((await $.state.set(SPEND, value, { ifVersion: held.version })).isSet) return value
+    const written = await $.state.set(SPEND, value, { ifVersion: held.version })
+    if (written.isSet) return value
   }
 }
 
 const STATS = { plugin: 'atelier', key: 'stats' } as const
 
 async function readStats($: EngineInterface): Promise<Held['stats']> {
-  return (await $.state.get(STATS)).value ?? null
+  const held = await $.state.get(STATS)
+  return held.value ?? null
 }
 
 async function updateStats($: EngineInterface, change: (value: Held['stats']) => Held['stats']): Promise<Held['stats']> {
   for (;;) {
     const held = await $.state.get(STATS)
     const value = change(held.value ?? null)
-    if ((await $.state.set(STATS, value, { ifVersion: held.version })).isSet) return value
+    const written = await $.state.set(STATS, value, { ifVersion: held.version })
+    if (written.isSet) return value
   }
 }
 
 const AGENT_RATES = { plugin: 'atelier', key: 'agentRates' } as const
 
 async function readAgentRates($: EngineInterface): Promise<Held['agentRates']> {
-  return (await $.state.get(AGENT_RATES)).value ?? {}
+  const held = await $.state.get(AGENT_RATES)
+  return held.value ?? {}
 }
 
 async function updateAgentRates($: EngineInterface, change: (value: Held['agentRates']) => Held['agentRates']): Promise<Held['agentRates']> {
   for (;;) {
     const held = await $.state.get(AGENT_RATES)
     const value = change(held.value ?? {})
-    if ((await $.state.set(AGENT_RATES, value, { ifVersion: held.version })).isSet) return value
+    const written = await $.state.set(AGENT_RATES, value, { ifVersion: held.version })
+    if (written.isSet) return value
   }
 }
 
@@ -521,14 +565,18 @@ function rid(prefix: string) {
 async function setTasks($: EngineInterface, fn: (list: Task[], rootId: string | null) => Task[]) {
   const rootId = await readRoot($)
   // A change that changes nothing (a phase already reached) writes nothing.
-  if (isSame(settle(fn(await readTasks($), rootId)), await readTasks($))) return
+  const tasksNow = await readTasks($)
+  if (isSame(settle(fn(tasksNow, rootId)), tasksNow)) return
   await updateTasks($, list => settle(fn(list, rootId)))
   isSummaryDirty = true
   startTicker($)
 }
 
 async function editFeed($: EngineInterface, fn: (list: FeedItem[]) => FeedItem[]) {
-  if (liveFeed === undefined) liveFeed = await readFeed($)
+  if (liveFeed === undefined) {
+    const feedNow = await readFeed($)
+    liveFeed = feedNow
+  }
   liveFeed = fn(liveFeed)
   isFeedDirty = true
   schedulePublish($)
@@ -566,7 +614,8 @@ async function publishLive($: EngineInterface) {
   if (liveCurrent !== undefined) {
     const current = liveCurrent
     liveCurrent = undefined
-    if (current !== (await readCurrent($))) await updateCurrent($, () => current)
+    const currentNow = await readCurrent($)
+    if (current !== currentNow) await updateCurrent($, () => current)
   }
   if (liveTools.size > 0) {
     const tools = new Map(liveTools)
@@ -931,7 +980,8 @@ async function declareUpdate($: EngineInterface, externalId: string, status: str
     )
   })
   if (mapped === 'done') {
-    const done = (await readTasks($)).find(t => t.externalId === externalId)
+    const tasksNow = await readTasks($)
+    const done = tasksNow.find(t => t.externalId === externalId)
     if (done !== undefined) await addTimeline($, 'task', ('Done: ' + String(done.title)))
   }
 }
@@ -982,7 +1032,8 @@ async function recordFile($: EngineInterface, path: string, result: unknown, inp
 
     return [...list.filter(f => f.path !== path), fileStat].slice(-FILES_MAX)
   })
-  const isFirst = (await readFiles($)).find(f => f.path === path)?.edits === 1
+  const filesNow = await readFiles($)
+  const isFirst = filesNow.find(f => f.path === path)?.edits === 1
   stat(d => {
     d.linesAdded = added
     d.linesRemoved = removed
@@ -1104,7 +1155,8 @@ async function publishPeer($: EngineInterface) {
   if (sessionId === '' || now - lastPeerAt < 10_000) return
   lastPeerAt = now
   const rootId = await readRoot($)
-  const rootTask = (await readTasks($)).find(t => t.id === rootId)
+  const tasksNow = await readTasks($)
+  const rootTask = tasksNow.find(t => t.id === rootId)
   const peer: PeerSession = {
     id: sessionId,
     title: rootTask?.title ?? 'idle',
@@ -1121,7 +1173,8 @@ async function loadPeers($: EngineInterface) {
   const peers: PeerSession[] = []
   for (const key of await $.store.keys()) {
     if (!key.startsWith('peer:') || key === ('peer:' + String(sessionId))) continue
-    const p = (await $.store.get(key)) as PeerSession | undefined
+    const stored = await $.store.get(key)
+    const p = stored as PeerSession | undefined
     if (p === undefined || now - p.at > PEER_TTL) {
       if (p !== undefined) await $.store.delete(key)
       continue
@@ -1143,7 +1196,8 @@ async function saveSummary($: EngineInterface) {
   isSummaryDirty = false
   const list = await readTasks($)
   if (list.length === 0) return
-  const files = (await readFiles($)).map(f => basename(f.path)).join(', ')
+  const filesNow = await readFiles($)
+  const files = filesNow.map(f => basename(f.path)).join(', ')
   const r = await $.model.complete({
     model: opt.observerModel,
     system: SUMMARY_SYSTEM,
@@ -1178,12 +1232,14 @@ async function loadHandoff($: EngineInterface) {
 async function search($: EngineInterface, query: string) {
   const q = query.toLowerCase()
   const hits: SearchHit[] = []
-  for (const s of await readSummaries($)) {
+  const summariesNow = await readSummaries($)
+  for (const s of summariesNow) {
     for (const line of [s.text, ...s.done, ...s.remaining, ...s.questions]) {
       if (line.toLowerCase().includes(q)) hits.push({ at: s.at, text: line, source: basename(s.root) })
     }
   }
-  for (const t of await readTasks($)) {
+  const tasksNow = await readTasks($)
+  for (const t of tasksNow) {
     if (t.title.toLowerCase().includes(q)) hits.push({ at: t.updatedAt, text: t.title, source: 'this session' })
   }
   hits.sort((a, b) => b.at - a.at)
@@ -1195,13 +1251,15 @@ async function search($: EngineInterface, query: string) {
 // ---------- decisions ----------
 
 async function answerDecision($: EngineInterface, id: string, option: string) {
-  const d = (await readDecisions($)).find(x => x.id === id)
+  const decisionsNow = await readDecisions($)
+  const d = decisionsNow.find(x => x.id === id)
   if (d === undefined) return
   await $.prompt.fill({ text: option === '' ? (String(d.title) + ': ') : (String(d.title) + ': go with ' + String(option) + '.') })
 }
 
 async function revertDecision($: EngineInterface, id: string) {
-  const d = (await readDecisions($)).find(x => x.id === id)
+  const decisionsNow = await readDecisions($)
+  const d = decisionsNow.find(x => x.id === id)
   if (d === undefined) return
   const answer = await $.ui.ask(('Ask Claude to revert "' + String(d.title) + ': ' + String(d.chosen) + '"?'), ['Ask Claude', 'Cancel'])
   if (answer !== 'Ask Claude') return
@@ -1219,7 +1277,8 @@ async function setView($: EngineInterface, fn: (v: ViewState) => ViewState) {
 }
 
 async function loadView($: EngineInterface) {
-  const saved = (await $.store.get('view')) as Partial<ViewState> | undefined
+  const stored = await $.store.get('view')
+  const saved = stored as Partial<ViewState> | undefined
   if (saved === undefined || typeof saved !== 'object') return
   await updateView($, v => ({
     ...v,
@@ -1261,7 +1320,8 @@ async function sampleTick($: EngineInterface) {
 async function pushAgentSamples($: EngineInterface) {
   const by = streamCharsBy
   streamCharsBy = new Map()
-  const known = new Set((await readAgents($)).map(a => a.id))
+  const agentsNow = await readAgents($)
+  const known = new Set(agentsNow.map(a => a.id))
   for (const [key, n] of by) if (n > 0) sampledBy.add(key)
   await updateAgentRates($, rates => appendRates(rates, by, known, RATE_MS, RATE_WINDOW))
 }
@@ -1519,7 +1579,8 @@ async function syncAgents($: EngineInterface) {
       await updateAgents($, nodes => nodes.map(n => (n.id === id ? { ...n, model: n.model || spawn.model, isBackground: spawn.isBackground } : n)))
       await addTimeline($, 'task', ('Agent: ' + String(title)))
     }
-    const isNew = agentTaskOf(await readTasks($), id) === undefined
+    const tasksNow = await readTasks($)
+    const isNew = agentTaskOf(tasksNow, id) === undefined
     const now = nowMs()
     await setTasks($, tasks => openAgentTask(tasks, id, title, now))
     if (isNew && opt.isObserverOn && title !== '') void quietly(seedAgent($, id, spawn?.prompt ?? title))
@@ -1527,7 +1588,8 @@ async function syncAgents($: EngineInterface) {
   // Agents the list calls finished close their tasks, as their turn.complete would.
   for (const n of merged.nodes) {
     if (n.id === 'main' || (n.status !== 'done' && n.status !== 'error')) continue
-    const own = agentTaskOf(await readTasks($), n.id)
+    const tasksNow = await readTasks($)
+    const own = agentTaskOf(tasksNow, n.id)
     if (own !== undefined && own.status === 'running') {
       const now = nowMs()
       await setTasks($, tasks => finishAgentTask(tasks, n.id, n.status === 'error', now))
@@ -1571,7 +1633,8 @@ function statCost(model: string, usd: number) {
 async function flushStats($: EngineInterface) {
   const delta = pendingStats
   pendingStats = emptyDay()
-  const raw = (await $.store.get('stats')) as { days?: Record<string, DayStats> } | undefined
+  const stored = await $.store.get('stats')
+  const raw = stored as { days?: Record<string, DayStats> } | undefined
   let days = raw !== undefined && typeof raw === 'object' && raw.days !== undefined ? raw.days : undefined
   if (days === undefined) days = await seedStatsFromSpend($)
   // Days follow Claude Code's clock, not the system's.
@@ -1607,7 +1670,8 @@ async function startStats($: EngineInterface) {
 
 /** Counts a session once, however often a hot reload replays session.start. */
 async function countSession($: EngineInterface) {
-  const seen = (await $.store.get('sessionsSeen')) as string[] | undefined
+  const stored = await $.store.get('sessionsSeen')
+  const seen = stored as string[] | undefined
   const list = Array.isArray(seen) ? seen : []
   if (sessionId === '' || list.includes(sessionId)) return
   await $.store.set('sessionsSeen', [...list, sessionId].slice(-200))
@@ -1681,7 +1745,8 @@ async function startCall($: EngineInterface, input: Record<string, unknown>, too
   setCurrent($, text, agentId, text)
   if (agentId !== undefined) lastActivity.set(agentId, nowMs())
   if (agentId !== undefined && nowMs() - lastSyncAt > 1_000) {
-    const isKnown = (await readAgents($)).some(a => a.id === agentId && a.status === 'running')
+    const agentsNow = await readAgents($)
+    const isKnown = agentsNow.some(a => a.id === agentId && a.status === 'running')
     if (!isKnown) void quietly(syncAgents($))
   }
   if (tool === 'AskUserQuestion') {
@@ -1784,7 +1849,8 @@ export const register: Register = (on, options) => {
     sessionId = await $.session.id()
     // The project folder as the event hands it, rather than read from the machine.
     root = e.cwd
-    sessionStartedAt = (await $.session.usage()).startedAt
+    const usageNow = await $.session.usage()
+    sessionStartedAt = usageNow.startedAt
     void quietly(loadView($))
     void quietly(flushSpend($))
     void quietly(startStats($))
@@ -1900,7 +1966,8 @@ export const register: Register = (on, options) => {
       )
       await attribute($, used, agentId)
       const isError = e.reason === 'error' || e.isAborted
-      const node = (await readAgents($)).find(a => a.id === agentId)
+      const agentsNow = await readAgents($)
+      const node = agentsNow.find(a => a.id === agentId)
       if (node !== undefined) {
         stat(d => {
           d.agents = { [node.type]: { spawns: 0, tokens: node.tokens, ms: nowMs() - node.startedAt, fails: isError ? 1 : 0 } }
