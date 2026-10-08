@@ -1445,234 +1445,67 @@ export const register: Register = (on, options) => {
   })
 
   on('prompt.submit', async ($, e, next) => {
-    if (!isPlaced) void open($).catch(() => {})
-    const isPerson = e.origin.kind === 'composer' || e.origin.kind === 'bridge' || e.origin.kind === 'sdk'
-    if (!isPerson) return next(e)
-    lastPhase = undefined
-    void clearAttention($).catch(() => {})
-    void update($, decisionsAtom, list => (list.some(d => d.isPending) ? answerPending(list, e.text) : list)).catch(() => {})
-    noteForDecisions($, `Person said: ${e.text}`)
-    if (!looksTrivial(e.text)) {
-      const id = rid('r')
-      const now = nowMs()
-      const title = e.text.trim().split('\n')[0]?.slice(0, 60) ?? 'Task'
-      // The root shows at once, its bar indeterminate until Haiku answers.
-      await setTasks($, list => [
-        ...list.map(t => (t.parentId === null && t.agentId === undefined && t.status === 'running' ? { ...t, status: 'pending' as const } : t)),
-        newTask({ id, title, status: 'running', confidence: 0, order: now }, now),
-      ])
-      await update($, rootAtom, () => id)
-      if (opt.isObserverOn) void seed($, e.text, id).catch(() => {})
-    }
     return next(e)
   })
 
   on('turn.start', async ($, e, next) => {
-    turnId = e.turnId
-    isTurnRunning = true
-    turnStartedAt = nowMs()
-    await update($, agentsAtom, list => list.map(a => (a.id === 'main' ? { ...a, status: 'running' as const, startedAt: nowMs() } : a)))
-    startTicker($)
-
     return next(e)
   })
 
   // Notes the call and passes it on unchanged; what follows the call is
   // read from PostToolUse / PostToolUseFailure below.
   on('tool.call', async ($, e, next) => {
-    await startCall($, e as unknown as Record<string, unknown>, String(e.tool), e.tool_use_id, e.agentId)
-
     return next(e)
   })
 
   on('classic.PostToolUse', async ($, e, next) => {
-    await endCall($, e.tool_use_id, false, e.tool_response, undefined)
-
     return next(e)
   })
 
   on('classic.PostToolUseFailure', async ($, e, next) => {
-    await endCall($, e.tool_use_id, true, undefined, e.error)
-
     return next(e)
   })
 
   // Notes the spawn and passes it on unchanged; the agent's id comes from
   // the engine's agent list, which the sync below reads right after.
   on('agent.spawn', ($, e, next) => {
-    pendingSpawns = [...pendingSpawns, { description: e.description, type: e.subagentType, prompt: e.prompt, model: e.model ?? e.parentModel, isBackground: e.background, at: nowMs() }].slice(-10)
-    stat(d => {
-      d.agents = { [e.subagentType]: { spawns: 1, tokens: 0, ms: 0, fails: 0 } }
-    })
-    scheduleSync($)
-
     return next(e)
   })
 
   on('turn.complete', async ($, e, next) => {
-    // The steps counted as they came; this is only what they missed.
-    const used = await settleTurn($, e.agentId, e.usage, e.durationMs)
-    if (e.agentId !== undefined) {
-      const agentId = e.agentId
-      await update($, agentsAtom, list =>
-        list.map(a =>
-          a.id === agentId
-            ? { ...a, status: e.reason === 'error' ? ('error' as const) : ('done' as const), endedAt: nowMs(), tokens: a.tokens + used, currentTool: undefined }
-            : a,
-        ),
-      )
-      await attribute($, used, agentId)
-      const isError = e.reason === 'error' || e.isAborted
-      const node = (await read($, agentsAtom)).find(a => a.id === agentId)
-      if (node !== undefined) {
-        stat(d => {
-          d.agents = { [node.type]: { spawns: 0, tokens: node.tokens, ms: nowMs() - node.startedAt, fails: isError ? 1 : 0 } }
-        })
-      }
-      const now = nowMs()
-      await setTasks($, list => finishAgentTask(list, agentId, isError, now))
-
-      return next(e)
-    }
-    turnId = undefined
-    isTurnRunning = false
-    turnStartedAt = null
-    stat(d => {
-      d.turns = 1
-      d.turnMs = e.durationMs
-      if (root !== '') d.byProject = { [root]: { cost: 0, tokens: 0, turns: 1 } }
-    })
-    void flushStats($).catch(() => {})
-    void refreshContext($).catch(() => {})
-    void flushSpend($).catch(() => {})
-    await update($, agentsAtom, list =>
-      list.map(a => (a.id === 'main' ? { ...a, status: 'idle' as const, tokens: a.tokens + used, currentTool: undefined } : a)),
-    )
-    setCurrent($, null, undefined, undefined)
-    await publishLive($)
-    await attribute($, used)
-    await setTasks($, (list, rootId) => list.map(t => (t.id === rootId && t.status === 'running' ? { ...t, status: 'waiting' as const } : t)))
-    void refreshUsage($).catch(() => {})
-    void publishPeer($).catch(() => {})
-    flushTimer?.cancel()
-    flushTimer = undefined
-    const answer = e.answer
-    // The turn's end settles decisions at once rather than after the quiet.
-    if (decideLines.length > 0) {
-      decideTimer?.cancel()
-      decideTimer = undefined
-      void decide($).catch(() => {})
-    }
-    void (async () => {
-      await reconcile($, answer)
-      await saveSummary($)
-      await publishPeer($)
-    })().catch(() => {})
-
     return next(e)
   })
 
   on('session.measure', async ($, e, next) => {
-    const view: UsageView = {
-      contextTokens: e.context.tokens,
-      window: e.context.window,
-      percent: e.context.percent,
-      costUsd: e.cost?.usd,
-      rateLimits: e.rateLimits.map(r => ({ kind: r.kind, percentUsed: r.percentUsed, resetsAt: r.resetsAt })),
-    }
-    await update($, usageAtom, () => view)
-    // Between turns the heatmap follows the window from here too, and gets
-    // its first reading here when turn.complete's refresh gave none; never
-    // mid-turn, so "per turn" stays one reading a turn.
-    const measured = e.context.tokens
-    if (measured !== undefined && !isTurnRunning && measured !== lastMeasured) {
-      lastMeasured = measured
-      const ctx = await read($, contextAtom)
-      if (ctx === null || Math.abs(ctx.used - measured) > 2000) void refreshContext($, e.context).catch(() => {})
-    }
-    const cost = e.cost?.usd
-    if (cost !== undefined) {
-      // The first reading is the baseline: a resumed session's past spend counted already.
-      if (lastCost !== undefined && cost > lastCost) {
-        const model = lastStepModel || 'unknown'
-        pendingSpend = { ...pendingSpend, [model]: (pendingSpend[model] ?? 0) + (cost - lastCost) }
-        statCost(model, cost - lastCost)
-      }
-      lastCost = cost
-    }
-
     return next(e)
   })
 
   // Passes the response through untouched (yield* next(e)); what it cost
   // is counted from the step's own usage once it has come back.
   on('turn.step', async function* ($, e, next) {
-    startStep($, e.agentId, e.model)
     const result = yield* next(e)
-    endStep($, e.agentId, result)
 
     return result
   })
 
   on('classic.PostCompact', async ($, e, next) => {
-    stat(d => {
-      d.compactions = 1
-    })
-
     return next(e)
   })
 
   on('session.end', async ($, e, next) => {
-    if (sessionId !== '') await $.store.delete(`peer:${sessionId}`)
-    await flushStats($).catch(() => {})
-
     return next(e)
   })
 
   on('classic.Notification', async ($, e, next) => {
-    if (/permission|idle|elicitation|input/i.test(e.notification_type)) await attention($, e.message.slice(0, 80))
-
     return next(e)
   })
 
   on('classic.PermissionRequest', async ($, e, next) => {
-    await attention($, `Permission needed: ${e.tool_name}`)
-
     return next(e)
   })
 
-  on('command.run', { command: 'atelier' }, async ($, e) => {
-    const [verb = '', ...rest] = e.args.trim().split(/\s+/)
-    if (verb === 'close') {
-      await $.ui.close({ id: PANE })
-
-      return { text: 'Atelier closed.' }
-    }
-    if (verb === 'compact') {
-      await update($, viewAtom, v => ({ ...v, isCompact: !v.isCompact }))
-      await open($, e.presentation.columns)
-
-      return { text: 'Atelier compact mode toggled.' }
-    }
-    if (verb === 'stats') {
-      await flushStats($)
-      await setView($, v => ({ ...v, isStats: v.isStats !== true, isDetail: false }))
-      await open($, e.presentation.columns)
-
-      return { text: 'Atelier stats view toggled.' }
-    }
-    if (verb === 'search') {
-      const query = rest.join(' ')
-      if (query === '') return { text: 'Usage: /atelier search <query>' }
-      const hits = await search($, query)
-      await open($, e.presentation.columns)
-      if (hits.length === 0) return { text: `No matches for "${query}".` }
-
-      return { text: hits.slice(0, 10).map(h => `${new Date(h.at).toISOString().slice(0, 10)} [${h.source}] ${h.text}`).join('\n') }
-    }
-    await open($, e.presentation.columns)
-
-    return { text: 'Atelier opened. Args: close | compact | stats | search <query>' }
+  on('command.run', { command: 'atelier' }, async ($, e, next) => {
+    return next(e)
   })
 
   on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {
