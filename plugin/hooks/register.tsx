@@ -1,4 +1,4 @@
-import type { EngineInterface, PluginState, ModelUsage, PluginOptions, Register, Timer } from 'claude-code'
+import type { EngineInterface, PluginState, ProcessRunResult, ModelUsage, PluginOptions, Register, Timer } from 'claude-code'
 
 import type {
   AgentNode,
@@ -104,12 +104,48 @@ const SPEND_DAYS = 62
 // its literal reference, the way the directory's review reads the code.
 type Held = PluginState['atelier']
 
+// What each value reads as before it is first written.
+function emptyAlerts(): Held['alerts'] {
+  return { attention: null, spins: [], drift: null }
+}
+
+function emptyView(): Held['view'] {
+  return {
+  isCompact: false,
+  isNoteOpen: false,
+  usageTab: 'limits',
+  isDetail: false,
+}
+}
+
+function emptyObserver(): Held['observer'] {
+  return {
+  calls: 0,
+  inputTokens: 0,
+  outputTokens: 0,
+  lastKind: null,
+  dropped: 0,
+}
+}
+
+function emptyConfidence(): Held['confidence'] {
+  return {
+  untestedEdits: 0,
+  testsPassed: null,
+  typecheckClean: null,
+}
+}
+
+function emptyRate(): Held['rate'] {
+  return { samples: [], peak: 0, sum: 0, count: 0, tokens: 0 }
+}
+
+function emptyCache(): Held['cache'] {
+  return { lastHitAt: null, ttlMs: CACHE_TTL_MS, readTokens: 0, inputTokens: 0 }
+}
+
 const TASKS = { plugin: 'atelier', key: 'tasks' } as const
 
-async function readTasks($: EngineInterface): Promise<Held['tasks']> {
-  const held = await $.state.get(TASKS)
-  return held.value ?? []
-}
 
 async function updateTasks($: EngineInterface, change: (value: Held['tasks']) => Held['tasks']): Promise<Held['tasks']> {
   for (;;) {
@@ -122,10 +158,6 @@ async function updateTasks($: EngineInterface, change: (value: Held['tasks']) =>
 
 const ROOT = { plugin: 'atelier', key: 'rootId' } as const
 
-async function readRoot($: EngineInterface): Promise<Held['rootId']> {
-  const held = await $.state.get(ROOT)
-  return held.value ?? null
-}
 
 async function updateRoot($: EngineInterface, change: (value: Held['rootId']) => Held['rootId']): Promise<Held['rootId']> {
   for (;;) {
@@ -138,10 +170,6 @@ async function updateRoot($: EngineInterface, change: (value: Held['rootId']) =>
 
 const AGENTS = { plugin: 'atelier', key: 'agents' } as const
 
-async function readAgents($: EngineInterface): Promise<Held['agents']> {
-  const held = await $.state.get(AGENTS)
-  return held.value ?? []
-}
 
 async function updateAgents($: EngineInterface, change: (value: Held['agents']) => Held['agents']): Promise<Held['agents']> {
   for (;;) {
@@ -154,10 +182,6 @@ async function updateAgents($: EngineInterface, change: (value: Held['agents']) 
 
 const USAGE = { plugin: 'atelier', key: 'usage' } as const
 
-async function readUsage($: EngineInterface): Promise<Held['usage']> {
-  const held = await $.state.get(USAGE)
-  return held.value ?? null
-}
 
 async function updateUsage($: EngineInterface, change: (value: Held['usage']) => Held['usage']): Promise<Held['usage']> {
   for (;;) {
@@ -170,10 +194,6 @@ async function updateUsage($: EngineInterface, change: (value: Held['usage']) =>
 
 const FEED = { plugin: 'atelier', key: 'feed' } as const
 
-async function readFeed($: EngineInterface): Promise<Held['feed']> {
-  const held = await $.state.get(FEED)
-  return held.value ?? []
-}
 
 async function updateFeed($: EngineInterface, change: (value: Held['feed']) => Held['feed']): Promise<Held['feed']> {
   for (;;) {
@@ -186,10 +206,6 @@ async function updateFeed($: EngineInterface, change: (value: Held['feed']) => H
 
 const CURRENT = { plugin: 'atelier', key: 'current' } as const
 
-async function readCurrent($: EngineInterface): Promise<Held['current']> {
-  const held = await $.state.get(CURRENT)
-  return held.value ?? null
-}
 
 async function updateCurrent($: EngineInterface, change: (value: Held['current']) => Held['current']): Promise<Held['current']> {
   for (;;) {
@@ -202,10 +218,6 @@ async function updateCurrent($: EngineInterface, change: (value: Held['current']
 
 const FILES = { plugin: 'atelier', key: 'files' } as const
 
-async function readFiles($: EngineInterface): Promise<Held['files']> {
-  const held = await $.state.get(FILES)
-  return held.value ?? []
-}
 
 async function updateFiles($: EngineInterface, change: (value: Held['files']) => Held['files']): Promise<Held['files']> {
   for (;;) {
@@ -218,10 +230,6 @@ async function updateFiles($: EngineInterface, change: (value: Held['files']) =>
 
 const ALERTS = { plugin: 'atelier', key: 'alerts' } as const
 
-async function readAlerts($: EngineInterface): Promise<Held['alerts']> {
-  const held = await $.state.get(ALERTS)
-  return held.value ?? { attention: null, spins: [], drift: null }
-}
 
 async function updateAlerts($: EngineInterface, change: (value: Held['alerts']) => Held['alerts']): Promise<Held['alerts']> {
   for (;;) {
@@ -234,15 +242,6 @@ async function updateAlerts($: EngineInterface, change: (value: Held['alerts']) 
 
 const VIEW = { plugin: 'atelier', key: 'view' } as const
 
-async function readView($: EngineInterface): Promise<Held['view']> {
-  const held = await $.state.get(VIEW)
-  return held.value ?? {
-  isCompact: false,
-  isNoteOpen: false,
-  usageTab: 'limits',
-  isDetail: false,
-}
-}
 
 async function updateView($: EngineInterface, change: (value: Held['view']) => Held['view']): Promise<Held['view']> {
   for (;;) {
@@ -260,16 +259,6 @@ async function updateView($: EngineInterface, change: (value: Held['view']) => H
 
 const OBSERVER = { plugin: 'atelier', key: 'observer' } as const
 
-async function readObserver($: EngineInterface): Promise<Held['observer']> {
-  const held = await $.state.get(OBSERVER)
-  return held.value ?? {
-  calls: 0,
-  inputTokens: 0,
-  outputTokens: 0,
-  lastKind: null,
-  dropped: 0,
-}
-}
 
 async function updateObserver($: EngineInterface, change: (value: Held['observer']) => Held['observer']): Promise<Held['observer']> {
   for (;;) {
@@ -288,10 +277,6 @@ async function updateObserver($: EngineInterface, change: (value: Held['observer
 
 const TIMELINE = { plugin: 'atelier', key: 'timeline' } as const
 
-async function readTimeline($: EngineInterface): Promise<Held['timeline']> {
-  const held = await $.state.get(TIMELINE)
-  return held.value ?? []
-}
 
 async function updateTimeline($: EngineInterface, change: (value: Held['timeline']) => Held['timeline']): Promise<Held['timeline']> {
   for (;;) {
@@ -304,14 +289,6 @@ async function updateTimeline($: EngineInterface, change: (value: Held['timeline
 
 const CONFIDENCE = { plugin: 'atelier', key: 'confidence' } as const
 
-async function readConfidence($: EngineInterface): Promise<Held['confidence']> {
-  const held = await $.state.get(CONFIDENCE)
-  return held.value ?? {
-  untestedEdits: 0,
-  testsPassed: null,
-  typecheckClean: null,
-}
-}
 
 async function updateConfidence($: EngineInterface, change: (value: Held['confidence']) => Held['confidence']): Promise<Held['confidence']> {
   for (;;) {
@@ -328,10 +305,6 @@ async function updateConfidence($: EngineInterface, change: (value: Held['confid
 
 const PEERS = { plugin: 'atelier', key: 'peers' } as const
 
-async function readPeers($: EngineInterface): Promise<Held['peers']> {
-  const held = await $.state.get(PEERS)
-  return held.value ?? []
-}
 
 async function updatePeers($: EngineInterface, change: (value: Held['peers']) => Held['peers']): Promise<Held['peers']> {
   for (;;) {
@@ -344,10 +317,6 @@ async function updatePeers($: EngineInterface, change: (value: Held['peers']) =>
 
 const HANDOFF = { plugin: 'atelier', key: 'handoff' } as const
 
-async function readHandoff($: EngineInterface): Promise<Held['handoff']> {
-  const held = await $.state.get(HANDOFF)
-  return held.value ?? null
-}
 
 async function updateHandoff($: EngineInterface, change: (value: Held['handoff']) => Held['handoff']): Promise<Held['handoff']> {
   for (;;) {
@@ -360,10 +329,6 @@ async function updateHandoff($: EngineInterface, change: (value: Held['handoff']
 
 const SEARCH = { plugin: 'atelier', key: 'search' } as const
 
-async function readSearch($: EngineInterface): Promise<Held['search']> {
-  const held = await $.state.get(SEARCH)
-  return held.value ?? null
-}
 
 async function updateSearch($: EngineInterface, change: (value: Held['search']) => Held['search']): Promise<Held['search']> {
   for (;;) {
@@ -376,10 +341,6 @@ async function updateSearch($: EngineInterface, change: (value: Held['search']) 
 
 const DECISIONS = { plugin: 'atelier', key: 'decisions' } as const
 
-async function readDecisions($: EngineInterface): Promise<Held['decisions']> {
-  const held = await $.state.get(DECISIONS)
-  return held.value ?? []
-}
 
 async function updateDecisions($: EngineInterface, change: (value: Held['decisions']) => Held['decisions']): Promise<Held['decisions']> {
   for (;;) {
@@ -392,10 +353,6 @@ async function updateDecisions($: EngineInterface, change: (value: Held['decisio
 
 const RATE = { plugin: 'atelier', key: 'rate' } as const
 
-async function readRate($: EngineInterface): Promise<Held['rate']> {
-  const held = await $.state.get(RATE)
-  return held.value ?? { samples: [], peak: 0, sum: 0, count: 0, tokens: 0 }
-}
 
 async function updateRate($: EngineInterface, change: (value: Held['rate']) => Held['rate']): Promise<Held['rate']> {
   for (;;) {
@@ -408,10 +365,6 @@ async function updateRate($: EngineInterface, change: (value: Held['rate']) => H
 
 const CACHE = { plugin: 'atelier', key: 'cache' } as const
 
-async function readCache($: EngineInterface): Promise<Held['cache']> {
-  const held = await $.state.get(CACHE)
-  return held.value ?? { lastHitAt: null, ttlMs: CACHE_TTL_MS, readTokens: 0, inputTokens: 0 }
-}
 
 async function updateCache($: EngineInterface, change: (value: Held['cache']) => Held['cache']): Promise<Held['cache']> {
   for (;;) {
@@ -424,10 +377,6 @@ async function updateCache($: EngineInterface, change: (value: Held['cache']) =>
 
 const CONTEXT = { plugin: 'atelier', key: 'context' } as const
 
-async function readContext($: EngineInterface): Promise<Held['context']> {
-  const held = await $.state.get(CONTEXT)
-  return held.value ?? null
-}
 
 async function updateContext($: EngineInterface, change: (value: Held['context']) => Held['context']): Promise<Held['context']> {
   for (;;) {
@@ -440,10 +389,6 @@ async function updateContext($: EngineInterface, change: (value: Held['context']
 
 const SPEND = { plugin: 'atelier', key: 'spend' } as const
 
-async function readSpend($: EngineInterface): Promise<Held['spend']> {
-  const held = await $.state.get(SPEND)
-  return held.value ?? null
-}
 
 async function updateSpend($: EngineInterface, change: (value: Held['spend']) => Held['spend']): Promise<Held['spend']> {
   for (;;) {
@@ -456,10 +401,6 @@ async function updateSpend($: EngineInterface, change: (value: Held['spend']) =>
 
 const STATS = { plugin: 'atelier', key: 'stats' } as const
 
-async function readStats($: EngineInterface): Promise<Held['stats']> {
-  const held = await $.state.get(STATS)
-  return held.value ?? null
-}
 
 async function updateStats($: EngineInterface, change: (value: Held['stats']) => Held['stats']): Promise<Held['stats']> {
   for (;;) {
@@ -472,10 +413,6 @@ async function updateStats($: EngineInterface, change: (value: Held['stats']) =>
 
 const AGENT_RATES = { plugin: 'atelier', key: 'agentRates' } as const
 
-async function readAgentRates($: EngineInterface): Promise<Held['agentRates']> {
-  const held = await $.state.get(AGENT_RATES)
-  return held.value ?? {}
-}
 
 async function updateAgentRates($: EngineInterface, change: (value: Held['agentRates']) => Held['agentRates']): Promise<Held['agentRates']> {
   for (;;) {
@@ -563,9 +500,11 @@ function rid(prefix: string) {
 }
 
 async function setTasks($: EngineInterface, fn: (list: Task[], rootId: string | null) => Task[]) {
-  const rootId = await readRoot($)
+  const rootIdHeld = await $.state.get(ROOT)
+  const rootId = rootIdHeld.value ?? null
   // A change that changes nothing (a phase already reached) writes nothing.
-  const tasksNow = await readTasks($)
+  const tasksNowHeld = await $.state.get(TASKS)
+  const tasksNow = tasksNowHeld.value ?? []
   if (isSame(settle(fn(tasksNow, rootId)), tasksNow)) return
   await updateTasks($, list => settle(fn(list, rootId)))
   isSummaryDirty = true
@@ -574,7 +513,8 @@ async function setTasks($: EngineInterface, fn: (list: Task[], rootId: string | 
 
 async function editFeed($: EngineInterface, fn: (list: FeedItem[]) => FeedItem[]) {
   if (liveFeed === undefined) {
-    const feedNow = await readFeed($)
+    const feedNowHeld = await $.state.get(FEED)
+    const feedNow = feedNowHeld.value ?? []
     liveFeed = feedNow
   }
   liveFeed = fn(liveFeed)
@@ -614,13 +554,15 @@ async function publishLive($: EngineInterface) {
   if (liveCurrent !== undefined) {
     const current = liveCurrent
     liveCurrent = undefined
-    const currentNow = await readCurrent($)
+    const currentNowHeld = await $.state.get(CURRENT)
+    const currentNow = currentNowHeld.value ?? null
     if (current !== currentNow) await updateCurrent($, () => current)
   }
   if (liveTools.size > 0) {
     const tools = new Map(liveTools)
     liveTools.clear()
-    const agents = await readAgents($)
+    const agentsHeld = await $.state.get(AGENTS)
+    const agents = agentsHeld.value ?? []
     if (applyCurrentTools(agents, tools) !== agents) await updateAgents($, list => [...applyCurrentTools(list, tools)])
   }
 }
@@ -658,8 +600,10 @@ function startTicker($: EngineInterface) {
 }
 
 async function stepTicker($: EngineInterface) {
-  const list = await readTasks($)
-  const agents = await readAgents($)
+  const listHeld = await $.state.get(TASKS)
+  const list = listHeld.value ?? []
+  const agentsHeld = await $.state.get(AGENTS)
+  const agents = agentsHeld.value ?? []
   let isMoving = false
   for (const t of list) {
     const was = shown.get(t.id) ?? 0
@@ -793,8 +737,10 @@ async function flush($: EngineInterface) {
     const kind = await $.model.classify(lines, ['noise', 'progress', 'new_work', 'blocked'], { model: opt.observerModel })
     await countObserver($, undefined, Math.ceil(lines.length / 4) + 80, kind ?? 'unknown')
     if (kind === undefined || kind === 'noise') return
-    const rootId = await readRoot($)
-    const list = await readTasks($)
+    const rootIdHeld = await $.state.get(ROOT)
+    const rootId = rootIdHeld.value ?? null
+    const listHeld = await $.state.get(TASKS)
+    const list = listHeld.value ?? []
     const goal = list.find(t => t.id === rootId)?.title ?? '(none)'
     const r = await $.model.complete({
       model: opt.observerModel,
@@ -852,7 +798,8 @@ async function decide($: EngineInterface) {
   const lines = decideLines
   decideLines = []
   try {
-    const known = await readDecisions($)
+    const knownHeld = await $.state.get(DECISIONS)
+    const known = knownHeld.value ?? []
     const r = await $.model.complete({
       model: opt.observerModel,
       system: DECISION_SYSTEM,
@@ -879,8 +826,10 @@ async function checkDrift($: EngineInterface, goal: string, lines: string) {
 }
 
 async function reconcile($: EngineInterface, answer: string) {
-  const rootId = await readRoot($)
-  const list = await readTasks($)
+  const rootIdHeld = await $.state.get(ROOT)
+  const rootId = rootIdHeld.value ?? null
+  const listHeld = await $.state.get(TASKS)
+  const list = listHeld.value ?? []
   if (rootId === null || !opt.isObserverOn) return
   const batch = buffer.splice(0, buffer.length).join('\n')
   const r = await $.model.complete({
@@ -922,7 +871,8 @@ async function refreshUsage($: EngineInterface) {
 /** Charges usage to the loop's own work: a subagent's to its task, the main loop's under the root. */
 async function attribute($: EngineInterface, amount: number, agentId?: string) {
   if (amount <= 0) return
-  const rootId = await readRoot($)
+  const rootIdHeld = await $.state.get(ROOT)
+  const rootId = rootIdHeld.value ?? null
   await updateTasks($, list => {
     const id = chargeableFor(list, rootId, agentId)
 
@@ -939,7 +889,8 @@ async function attention($: EngineInterface, text: string) {
 }
 
 async function clearAttention($: EngineInterface) {
-  const a = await readAlerts($)
+  const aHeld = await $.state.get(ALERTS)
+  const a = aHeld.value ?? emptyAlerts()
   if (a.attention === null) return
   await updateAlerts($, x => ({ ...x, attention: null }))
   await setTasks($, (list, rootId) => list.map(t => (t.id === rootId && t.status === 'waiting' ? { ...t, status: 'running' as const } : t)))
@@ -980,7 +931,8 @@ async function declareUpdate($: EngineInterface, externalId: string, status: str
     )
   })
   if (mapped === 'done') {
-    const tasksNow = await readTasks($)
+    const tasksNowHeld = await $.state.get(TASKS)
+    const tasksNow = tasksNowHeld.value ?? []
     const done = tasksNow.find(t => t.externalId === externalId)
     if (done !== undefined) await addTimeline($, 'task', ('Done: ' + String(done.title)))
   }
@@ -1032,7 +984,8 @@ async function recordFile($: EngineInterface, path: string, result: unknown, inp
 
     return [...list.filter(f => f.path !== path), fileStat].slice(-FILES_MAX)
   })
-  const filesNow = await readFiles($)
+  const filesNowHeld = await $.state.get(FILES)
+  const filesNow = filesNowHeld.value ?? []
   const isFirst = filesNow.find(f => f.path === path)?.edits === 1
   stat(d => {
     d.linesAdded = added
@@ -1066,7 +1019,8 @@ async function recordSpin($: EngineInterface, signature: string, isFailed: boole
       ? a.spins.filter(s => s.signature !== signature)
       : [...a.spins.filter(s => s.signature !== signature), { signature, count: r.count, text: (String(warning) + ': ' + String(text)) }].slice(-3)
   // Most calls change no warning: no write, no redraw.
-  const alerts = await readAlerts($)
+  const alertsHeld = await $.state.get(ALERTS)
+  const alerts = alertsHeld.value ?? emptyAlerts()
   if (!isSame(spinsOf(alerts), alerts.spins)) await updateAlerts($, a => ({ ...a, spins: spinsOf(a) }))
   if (warning !== undefined && r.count === 3) {
     $.ui.toast(('Atelier: ' + String(warning)))
@@ -1097,34 +1051,40 @@ async function compactNow($: EngineInterface) {
 async function runTests($: EngineInterface) {
   const id = rid('f')
   await pushFeed($, { id, at: nowMs(), text: ('Running ' + String(opt.testCommand)), tool: 'atelier', state: 'running' })
-  const r = await runTestCommand($, opt.testCommand)
+  const init = { cwd: root || undefined, timeoutMs: 600_000 }
+  // One of a fixed set of runners, each started by name with fixed arguments.
+  let r: ProcessRunResult
+  switch (opt.testCommand) {
+    case 'pnpm test':
+      r = await $.process.run(['pnpm', 'test'], init)
+      break
+    case 'yarn test':
+      r = await $.process.run(['yarn', 'test'], init)
+      break
+    case 'bun test':
+      r = await $.process.run(['bun', 'test'], init)
+      break
+    case 'make test':
+      r = await $.process.run(['make', 'test'], init)
+      break
+    case 'pytest':
+      r = await $.process.run(['pytest'], init)
+      break
+    case 'cargo test':
+      r = await $.process.run(['cargo', 'test'], init)
+      break
+    case 'go test':
+      r = await $.process.run(['go', 'test', './...'], init)
+      break
+    default:
+      r = await $.process.run(['npm', 'test'], init)
+  }
   const isOk = r.exitCode === 0
   await editFeed($, list => list.map(f => (f.id === id ? { ...f, state: isOk ? ('ok' as const) : ('error' as const), text: ('Tests ' + String(isOk ? 'passed' : ('failed (' + String(r.exitCode) + ')'))) } : f)))
   await recordVerify($, opt.testCommand, isOk)
   $.ui.toast(('Atelier: tests ' + String(isOk ? 'passed' : 'failed')))
 }
 
-async function runTestCommand($: EngineInterface, command: TestCommand) {
-  const init = { cwd: root || undefined, timeoutMs: 600_000 }
-  switch (command) {
-    case 'pnpm test':
-      return $.process.run(['pnpm', 'test'], init)
-    case 'yarn test':
-      return $.process.run(['yarn', 'test'], init)
-    case 'bun test':
-      return $.process.run(['bun', 'test'], init)
-    case 'make test':
-      return $.process.run(['make', 'test'], init)
-    case 'pytest':
-      return $.process.run(['pytest'], init)
-    case 'cargo test':
-      return $.process.run(['cargo', 'test'], init)
-    case 'go test':
-      return $.process.run(['go', 'test', './...'], init)
-    default:
-      return $.process.run(['npm', 'test'], init)
-  }
-}
 
 async function commitCheckpoint($: EngineInterface) {
   const answer = await $.ui.ask('Stage every change (git add -A) and commit a checkpoint?', ['Commit', 'Cancel'])
@@ -1154,8 +1114,10 @@ async function publishPeer($: EngineInterface) {
   const now = nowMs()
   if (sessionId === '' || now - lastPeerAt < 10_000) return
   lastPeerAt = now
-  const rootId = await readRoot($)
-  const tasksNow = await readTasks($)
+  const rootIdHeld = await $.state.get(ROOT)
+  const rootId = rootIdHeld.value ?? null
+  const tasksNowHeld = await $.state.get(TASKS)
+  const tasksNow = tasksNowHeld.value ?? []
   const rootTask = tasksNow.find(t => t.id === rootId)
   const peer: PeerSession = {
     id: sessionId,
@@ -1184,19 +1146,20 @@ async function loadPeers($: EngineInterface) {
   await updatePeers($, () => peers)
 }
 
-async function readSummaries($: EngineInterface): Promise<Summary[]> {
-  const v = await $.store.get('summaries')
-
-  return Array.isArray(v) ? (v as Summary[]) : []
+/** The stored session summaries, or none when the store holds something else. */
+function asSummaries(stored: unknown): Summary[] {
+  return Array.isArray(stored) ? (stored as Summary[]) : []
 }
 
 // Precomputed at each turn's end: session.end has 1.5s, too little for a model call.
 async function saveSummary($: EngineInterface) {
   if (!isSummaryDirty || !opt.isObserverOn || sessionId === '') return
   isSummaryDirty = false
-  const list = await readTasks($)
+  const listHeld = await $.state.get(TASKS)
+  const list = listHeld.value ?? []
   if (list.length === 0) return
-  const filesNow = await readFiles($)
+  const filesNowHeld = await $.state.get(FILES)
+  const filesNow = filesNowHeld.value ?? []
   const files = filesNow.map(f => basename(f.path)).join(', ')
   const r = await $.model.complete({
     model: opt.observerModel,
@@ -1219,12 +1182,14 @@ async function saveSummary($: EngineInterface) {
     questions: strs(parsed.questions),
     text: typeof parsed.text === 'string' ? parsed.text.slice(0, 600) : '',
   }
-  const all = await readSummaries($)
+  const allStored = await $.store.get('summaries')
+  const all = asSummaries(allStored)
   await $.store.set('summaries', [...all.filter(s => s.sessionId !== sessionId), summary].slice(-SUMMARIES_MAX))
 }
 
 async function loadHandoff($: EngineInterface) {
-  const all = await readSummaries($)
+  const allStored = await $.store.get('summaries')
+  const all = asSummaries(allStored)
   const last = all.filter(s => s.root === root && s.sessionId !== sessionId && nowMs() - s.at < 14 * 86_400_000).at(-1)
   await updateHandoff($, () => last ?? null)
 }
@@ -1232,33 +1197,35 @@ async function loadHandoff($: EngineInterface) {
 async function search($: EngineInterface, query: string) {
   const q = query.toLowerCase()
   const hits: SearchHit[] = []
-  const summariesNow = await readSummaries($)
+  const summariesNowStored = await $.store.get('summaries')
+  const summariesNow = asSummaries(summariesNowStored)
   for (const s of summariesNow) {
     for (const line of [s.text, ...s.done, ...s.remaining, ...s.questions]) {
       if (line.toLowerCase().includes(q)) hits.push({ at: s.at, text: line, source: basename(s.root) })
     }
   }
-  const tasksNow = await readTasks($)
+  const tasksNowHeld = await $.state.get(TASKS)
+  const tasksNow = tasksNowHeld.value ?? []
   for (const t of tasksNow) {
     if (t.title.toLowerCase().includes(q)) hits.push({ at: t.updatedAt, text: t.title, source: 'this session' })
   }
   hits.sort((a, b) => b.at - a.at)
   await updateSearch($, () => ({ query, hits: hits.slice(0, 20) }))
-
-  return hits
 }
 
 // ---------- decisions ----------
 
 async function answerDecision($: EngineInterface, id: string, option: string) {
-  const decisionsNow = await readDecisions($)
+  const decisionsNowHeld = await $.state.get(DECISIONS)
+  const decisionsNow = decisionsNowHeld.value ?? []
   const d = decisionsNow.find(x => x.id === id)
   if (d === undefined) return
   await $.prompt.fill({ text: option === '' ? (String(d.title) + ': ') : (String(d.title) + ': go with ' + String(option) + '.') })
 }
 
 async function revertDecision($: EngineInterface, id: string) {
-  const decisionsNow = await readDecisions($)
+  const decisionsNowHeld = await $.state.get(DECISIONS)
+  const decisionsNow = decisionsNowHeld.value ?? []
   const d = decisionsNow.find(x => x.id === id)
   if (d === undefined) return
   const answer = await $.ui.ask(('Ask Claude to revert "' + String(d.title) + ': ' + String(d.chosen) + '"?'), ['Ask Claude', 'Cancel'])
@@ -1272,7 +1239,9 @@ async function revertDecision($: EngineInterface, id: string) {
 // ---------- view toggles, kept across sessions ----------
 
 async function setView($: EngineInterface, fn: (v: ViewState) => ViewState) {
-  const saved = await updateView($, fn)
+  await updateView($, fn)
+  const savedHeld = await $.state.get(VIEW)
+  const saved = savedHeld.value ?? emptyView()
   await $.store.set('view', { usageTab: saved.usageTab, isDetail: saved.isDetail, isStats: saved.isStats })
 }
 
@@ -1320,7 +1289,8 @@ async function sampleTick($: EngineInterface) {
 async function pushAgentSamples($: EngineInterface) {
   const by = streamCharsBy
   streamCharsBy = new Map()
-  const agentsNow = await readAgents($)
+  const agentsNowHeld = await $.state.get(AGENTS)
+  const agentsNow = agentsNowHeld.value ?? []
   const known = new Set(agentsNow.map(a => a.id))
   for (const [key, n] of by) if (n > 0) sampledBy.add(key)
   await updateAgentRates($, rates => appendRates(rates, by, known, RATE_MS, RATE_WINDOW))
@@ -1389,12 +1359,16 @@ async function flushSteps($: EngineInterface) {
  * missed, or never ran) is added from the turn's own usage, so the figures
  * hold either way; a main turn no sample caught gets its average drawn.
  */
+/** What each loop's last settleTurn added: read by turn.complete. */
+const settled = new Map<string, number>()
+
 async function settleTurn($: EngineInterface, agentId: string | undefined, usage: (ModelUsage & { model?: string }) | undefined, durationMs: number) {
   await flushSteps($)
   const key = agentId ?? 'main'
   const seen = counted.get(key) ?? 0
   counted.set(key, 0)
-  if (usage === undefined) return 0
+  settled.set(key, 0)
+  if (usage === undefined) return
   const extra = Math.max(0, burned(usage) - seen)
   if (extra > 0) {
     const share = burned(usage) > 0 ? extra / burned(usage) : 0
@@ -1423,7 +1397,7 @@ async function settleTurn($: EngineInterface, agentId: string | undefined, usage
   }
   sampledBy.delete(key)
 
-  return extra
+  settled.set(key, extra)
 }
 
 type ContextSplit = { used: number; window: number; threshold?: number; system: number; tools: number; chat: number; isEstimate: boolean }
@@ -1468,13 +1442,15 @@ async function refreshContext($: EngineInterface, plain?: { tokens?: number; win
     debugLog($, ('atelier: session.usage({ breakdown }) failed: ' + String(String(err).slice(0, 200)) + '; the heatmap is an estimate'))
   }
   if (split === undefined) {
-    const u = await readUsage($)
+    const uHeld = await $.state.get(USAGE)
+    const u = uHeld.value ?? null
     const used = plain?.tokens ?? u?.contextTokens
     const window = plain?.window ?? u?.window ?? 0
     if (used === undefined || window <= 0) return
     split = { used, window, system: 0, tools: 0, chat: used, isEstimate: true }
   }
-  const prev = await readContext($)
+  const prevHeld = await $.state.get(CONTEXT)
+  const prev = prevHeld.value ?? null
   const used = split.used
   // A drop means compaction: file reads in context start over.
   if (prev !== null && used < prev.used) readChars = 0
@@ -1561,7 +1537,8 @@ function scheduleSync($: EngineInterface) {
 async function syncAgents($: EngineInterface) {
   lastSyncAt = nowMs()
   const list = await $.agent.list()
-  const before = await readAgents($)
+  const beforeHeld = await $.state.get(AGENTS)
+  const before = beforeHeld.value ?? []
   const merged = mergeAgentList(before, list, nowMs())
   const nodes = trimAgents(merged.nodes)
   hasRunningAgents = nodes.some(n => n.id !== 'main' && n.status === 'running')
@@ -1579,7 +1556,8 @@ async function syncAgents($: EngineInterface) {
       await updateAgents($, nodes => nodes.map(n => (n.id === id ? { ...n, model: n.model || spawn.model, isBackground: spawn.isBackground } : n)))
       await addTimeline($, 'task', ('Agent: ' + String(title)))
     }
-    const tasksNow = await readTasks($)
+    const tasksNowHeld = await $.state.get(TASKS)
+    const tasksNow = tasksNowHeld.value ?? []
     const isNew = agentTaskOf(tasksNow, id) === undefined
     const now = nowMs()
     await setTasks($, tasks => openAgentTask(tasks, id, title, now))
@@ -1588,7 +1566,8 @@ async function syncAgents($: EngineInterface) {
   // Agents the list calls finished close their tasks, as their turn.complete would.
   for (const n of merged.nodes) {
     if (n.id === 'main' || (n.status !== 'done' && n.status !== 'error')) continue
-    const tasksNow = await readTasks($)
+    const tasksNowHeld = await $.state.get(TASKS)
+    const tasksNow = tasksNowHeld.value ?? []
     const own = agentTaskOf(tasksNow, n.id)
     if (own !== undefined && own.status === 'running') {
       const now = nowMs()
@@ -1636,7 +1615,11 @@ async function flushStats($: EngineInterface) {
   const stored = await $.store.get('stats')
   const raw = stored as { days?: Record<string, DayStats> } | undefined
   let days = raw !== undefined && typeof raw === 'object' && raw.days !== undefined ? raw.days : undefined
-  if (days === undefined) days = await seedStatsFromSpend($)
+  if (days === undefined) {
+    // The first stats write carries over the spend book kept before stats existed.
+    const spendStored = await $.store.get('spend')
+    days = daysFromSpend(spendStored)
+  }
   // Days follow Claude Code's clock, not the system's.
   const now = await $.clock.now()
   if (!isEmptyDay(delta)) {
@@ -1647,20 +1630,6 @@ async function flushStats($: EngineInterface) {
   await updateStats($, () => summarizeStats(days, now))
 }
 
-/** The first stats write carries over the spend book kept before stats existed. */
-async function seedStatsFromSpend($: EngineInterface): Promise<Record<string, DayStats>> {
-  const raw = await $.store.get('spend')
-  const book = raw !== null && typeof raw === 'object' ? (raw as SpendBook) : {}
-  const days: Record<string, DayStats> = {}
-  for (const [k, v] of Object.entries(book)) {
-    const d = emptyDay()
-    d.cost = v.total
-    d.byModel = Object.fromEntries(Object.entries(v.byModel).map(([m, c]) => [m, { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, cost: c, requests: 0 }]))
-    days[k] = d
-  }
-
-  return days
-}
 
 /** A session's first stats: count it once, then write and summarize the store's days. */
 async function startStats($: EngineInterface) {
@@ -1690,7 +1659,8 @@ function quietly(work: Promise<unknown>) {
 /** Fills in the model of an agent first seen through the agent list. */
 async function fillAgentModel($: EngineInterface, agentId: string, model: string) {
   // Read first: most steps find the model already set and write nothing.
-  const list = await readAgents($)
+  const listHeld = await $.state.get(AGENTS)
+  const list = listHeld.value ?? []
   if (list.some(a => a.id === agentId && a.model === '')) await updateAgents($, l => l.map(a => (a.id === agentId && a.model === '' ? { ...a, model } : a)))
 }
 
@@ -1745,7 +1715,8 @@ async function startCall($: EngineInterface, input: Record<string, unknown>, too
   setCurrent($, text, agentId, text)
   if (agentId !== undefined) lastActivity.set(agentId, nowMs())
   if (agentId !== undefined && nowMs() - lastSyncAt > 1_000) {
-    const agentsNow = await readAgents($)
+    const agentsNowHeld = await $.state.get(AGENTS)
+    const agentsNow = agentsNowHeld.value ?? []
     const isKnown = agentsNow.some(a => a.id === agentId && a.status === 'running')
     if (!isKnown) void quietly(syncAgents($))
   }
@@ -1827,13 +1798,29 @@ async function runAtelierCommand($: EngineInterface, args: string, columns: numb
       return
     }
     // The hits show in the sidebar's search panel.
-    const hits = await search($, query)
+    await search($, query)
     await open($, columns)
+    const foundHeld = await $.state.get(SEARCH)
+    const hits = foundHeld.value?.hits ?? []
     $.ui.toast(hits.length === 0 ? ('Atelier: no matches for "' + String(query) + '"') : ('Atelier: ' + String(hits.length) + ' match' + String(hits.length === 1 ? '' : 'es') + ' in the sidebar'))
 
     return
   }
   await open($, columns)
+}
+
+/** The spend book kept before stats existed, as stats days. */
+function daysFromSpend(raw: unknown): Record<string, DayStats> {
+  const book = raw !== null && typeof raw === 'object' ? (raw as SpendBook) : {}
+  const days: Record<string, DayStats> = {}
+  for (const [k, v] of Object.entries(book)) {
+    const d = emptyDay()
+    d.cost = v.total
+    d.byModel = Object.fromEntries(Object.entries(v.byModel).map(([m, c]) => [m, { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, cost: c, requests: 0 }]))
+    days[k] = d
+  }
+
+  return days
 }
 
 // ---------- the hooks ----------
@@ -1954,7 +1941,8 @@ export const register: Register = (on, options) => {
 
   on('turn.complete', async ($, e, next) => {
     // The steps counted as they came; this is only what they missed.
-    const used = await settleTurn($, e.agentId, e.usage, e.durationMs)
+    await settleTurn($, e.agentId, e.usage, e.durationMs)
+    const used = settled.get(e.agentId ?? 'main') ?? 0
     if (e.agentId !== undefined) {
       const agentId = e.agentId
       await updateAgents($, list =>
@@ -1966,7 +1954,8 @@ export const register: Register = (on, options) => {
       )
       await attribute($, used, agentId)
       const isError = e.reason === 'error' || e.isAborted
-      const agentsNow = await readAgents($)
+      const agentsNowHeld = await $.state.get(AGENTS)
+      const agentsNow = agentsNowHeld.value ?? []
       const node = agentsNow.find(a => a.id === agentId)
       if (node !== undefined) {
         stat(d => {
@@ -2027,7 +2016,8 @@ export const register: Register = (on, options) => {
     const measured = e.context.tokens
     if (measured !== undefined && !isTurnRunning && measured !== lastMeasured) {
       lastMeasured = measured
-      const ctx = await readContext($)
+      const ctxHeld = await $.state.get(CONTEXT)
+      const ctx = ctxHeld.value ?? null
       if (ctx === null || Math.abs(ctx.used - measured) > 2000) void quietly(refreshContext($, e.context))
     }
     const cost = e.cost?.usd
@@ -2098,29 +2088,46 @@ export const register: Register = (on, options) => {
     if (terminal !== undefined && e.props.placement === 'dock' && asked === undefined) {
       void quietly(open($, terminal))
     }
-    const [tasks, rootId, agents, usage, feed, current, files, alerts, view, observer, timeline, confidence, peers, handoff, found, decisions, rate, cache, context, spend] =
-      await Promise.all([
-        readTasks($),
-        readRoot($),
-        readAgents($),
-        readUsage($),
-        readFeed($),
-        readCurrent($),
-        readFiles($),
-        readAlerts($),
-        readView($),
-        readObserver($),
-        readTimeline($),
-        readConfidence($),
-        readPeers($),
-        readHandoff($),
-        readSearch($),
-        readDecisions($),
-        readRate($),
-        readCache($),
-        readContext($),
-        readSpend($),
-      ])
+    const tasksHeld = await $.state.get(TASKS)
+    const tasks = tasksHeld.value ?? []
+    const rootIdHeld = await $.state.get(ROOT)
+    const rootId = rootIdHeld.value ?? null
+    const agentsHeld = await $.state.get(AGENTS)
+    const agents = agentsHeld.value ?? []
+    const usageHeld = await $.state.get(USAGE)
+    const usage = usageHeld.value ?? null
+    const feedHeld = await $.state.get(FEED)
+    const feed = feedHeld.value ?? []
+    const currentHeld = await $.state.get(CURRENT)
+    const current = currentHeld.value ?? null
+    const filesHeld = await $.state.get(FILES)
+    const files = filesHeld.value ?? []
+    const alertsHeld = await $.state.get(ALERTS)
+    const alerts = alertsHeld.value ?? emptyAlerts()
+    const viewHeld = await $.state.get(VIEW)
+    const view = viewHeld.value ?? emptyView()
+    const observerHeld = await $.state.get(OBSERVER)
+    const observer = observerHeld.value ?? emptyObserver()
+    const timelineHeld = await $.state.get(TIMELINE)
+    const timeline = timelineHeld.value ?? []
+    const confidenceHeld = await $.state.get(CONFIDENCE)
+    const confidence = confidenceHeld.value ?? emptyConfidence()
+    const peersHeld = await $.state.get(PEERS)
+    const peers = peersHeld.value ?? []
+    const handoffHeld = await $.state.get(HANDOFF)
+    const handoff = handoffHeld.value ?? null
+    const foundHeld = await $.state.get(SEARCH)
+    const found = foundHeld.value ?? null
+    const decisionsHeld = await $.state.get(DECISIONS)
+    const decisions = decisionsHeld.value ?? []
+    const rateHeld = await $.state.get(RATE)
+    const rate = rateHeld.value ?? emptyRate()
+    const cacheHeld = await $.state.get(CACHE)
+    const cache = cacheHeld.value ?? emptyCache()
+    const contextHeld = await $.state.get(CONTEXT)
+    const context = contextHeld.value ?? null
+    const spendHeld = await $.state.get(SPEND)
+    const spend = spendHeld.value ?? null
     // Bars draw eased: the ticker walks `shown` toward each target.
     const eased = (t: Task): Task => {
       const v = shown.get(t.id)
@@ -2132,8 +2139,10 @@ export const register: Register = (on, options) => {
     const steps = rootRaw === undefined ? [] : childrenOf(tasks, rootRaw.id).map(eased)
     const main = agents.find(a => a.id === 'main')
     const now = await $.clock.now()
-    const stats = await readStats($)
-    const agentRates = await readAgentRates($)
+    const statsHeld = await $.state.get(STATS)
+    const stats = statsHeld.value ?? null
+    const agentRatesHeld = await $.state.get(AGENT_RATES)
+    const agentRates = agentRatesHeld.value ?? {}
 
     return drawSidebar(
       {
