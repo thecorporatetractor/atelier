@@ -160,6 +160,10 @@ None of atelier's hooks change or answer what they see: each one notes the event
 
 Two buttons act on the session itself: `^C stop` cancels the running turn, and `c` compacts the conversation, the same as `/compact`.
 
+### What it reads
+
+atelier reads no credentials, tokens or keys, and no environment or files of yours. The only web address in its code is the SVG namespace `http://www.w3.org/2000/svg`, a fixed identifier written into the drawing for the desktop app; nothing ever connects to it. Where the code says "tokens", it means token counts of model usage.
+
 ### What it keeps
 
 Everything atelier remembers stays on your machine, in its own plugin store: daily usage totals for the stats screen (the last 120 days), short summaries of past sessions for `/atelier search` (the last 40), your view choices, and the progress of your other open sessions for the "other sessions" line. It reads the session's id, project folder, model name and usage figures from Claude Code to fill those in.

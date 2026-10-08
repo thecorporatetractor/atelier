@@ -524,11 +524,11 @@ export function drawSidebar(els: Els, d: SidebarData, act: SidebarActions): Rend
       <Box key="search" flexDirection="column">
         {header(`Search "${fit(d.search.query, 20)}"`, <Button key="s-x" plain dimColor label="✕" onPress={act.closeSearch} />)}
         {d.search.hits.length === 0 && row(dimText('no matches'))}
-        {d.search.hits.slice(0, 8).map(h =>
+        {d.search.hits.slice(0, 8).map(hit =>
           row(
             <Text>
-              <Text color={C.dim}>{new Date(h.at).toISOString().slice(5, 10)} </Text>
-              <Text color={C.fg}>{h.text}</Text>
+              <Text color={C.dim}>{new Date(hit.at).toISOString().slice(5, 10)} </Text>
+              <Text color={C.fg}>{hit.text}</Text>
             </Text>,
           ),
         )}

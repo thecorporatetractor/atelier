@@ -55,6 +55,13 @@ atelier is published in the Claude plugin directory, whose review reads the code
 
 ### `$` and calls
 
+The directory reads the name `$` as the capability object everywhere in a file that declares a hook, and checks every use of it from the source as written (finding `MOD_CAPABILITY_USE_NOT_PLAIN`):
+
+- A call that takes `$` stands alone: `syncAgents($)`, never `syncAgents($).catch(...)` or `.then(...)` chained on it. Background work goes through `quietly(work($))`, which drops a failure without throwing; a chain of steps becomes its own top-level function (`afterTurn`, `startStats`).
+- No `$` anywhere else in `register.tsx`: no template strings (`${...}`), no `$` in a regular expression. Build strings with `+` and look names up in a `Set`.
+- `$`, `e` and `next` are the hook's parameters and nothing else, file-wide: no variable, parameter, destructured name or callback argument elsewhere in `register.tsx` may be called `e` or `next` (findings `MOD_PERMISSION_ANSWER_UNREAD`, `MOD_ANSWERS_PERMISSION`). Helpers name their value after what it is (`eased`, `applied`, `saved`).
+- In every `.tsx` file, `h` and `Fragment` are JSX's own: never a variable, parameter or callback argument (`hits.map(hit => ...)`, not `map(h => ...)`).
+
 - Spell every call `$.noun.method(...)`. Pass `$` only as one whole argument to a function declared at the top level of `register.tsx`, and nowhere else: not even to `read`, `update` or `atom` from `claude-code`. State goes through the `readX($)` / `updateX($, change)` helpers in `register.tsx`, which call `$.state.get` / `$.state.set` with a literal reference.
 - Read the project folder from the event (`session.start`'s `e.cwd`), not from the machine.
 - Programs: `$.process.run` with the program's name and fixed arguments written in the call, e.g. `$.process.run(['git', 'add', '-A'], init)`. Never a shell, never an argument built from a setting, the model or a file. A choice the person makes selects one of a fixed set of such calls (see `runTestCommand`).

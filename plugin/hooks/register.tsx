@@ -515,7 +515,7 @@ function nowMs() {
 }
 
 function rid(prefix: string) {
-  return `${prefix}${nowMs().toString(36)}${Math.floor(Math.random() * 1e6).toString(36)}`
+  return (String(prefix) + String(nowMs().toString(36)) + String(Math.floor(Math.random() * 1e6).toString(36)))
 }
 
 async function setTasks($: EngineInterface, fn: (list: Task[], rootId: string | null) => Task[]) {
@@ -552,7 +552,7 @@ function schedulePublish($: EngineInterface) {
   if (publishTimer !== undefined) return
   publishTimer = $.clock.after(PUBLISH_MS, () => {
     publishTimer = undefined
-    void publishLive($).catch(() => {})
+    void quietly(publishLive($))
   })
 }
 
@@ -604,7 +604,7 @@ function startTicker($: EngineInterface) {
   if (ticker !== undefined) return
   ticker = $.clock.every(250, () => {
     tick += 1
-    void stepTicker($).catch(() => {})
+    void quietly(stepTicker($))
   })
 }
 
@@ -614,9 +614,9 @@ async function stepTicker($: EngineInterface) {
   let isMoving = false
   for (const t of list) {
     const was = shown.get(t.id) ?? 0
-    const next = ease(was, t.progress)
-    if (next !== was) isMoving = true
-    shown.set(t.id, next)
+    const eased = ease(was, t.progress)
+    if (eased !== was) isMoving = true
+    shown.set(t.id, eased)
   }
   const isRunning = isTurnRunning || liveAgents(agents, lastActivity, nowMs(), STALE_MS).length > 0
   if (isMoving || (isRunning && tick % 20 === 0)) $.ui.invalidate('ui.render')
@@ -670,15 +670,15 @@ async function seed($: EngineInterface, text: string, rootId: string) {
   const now = nowMs()
   await setTasks($, list => {
     const hasDeclared = list.some(t => t.parentId === rootId && t.source === 'declared')
-    const next = list.map(t => (t.id === rootId ? { ...t, title: goal ?? t.title, confidence: steps.length > 0 ? 0.7 : 0.3 } : t))
-    if (hasDeclared) return next
+    const named = list.map(t => (t.id === rootId ? { ...t, title: goal ?? t.title, confidence: steps.length > 0 ? 0.7 : 0.3 } : t))
+    if (hasDeclared) return named
 
     return [
-      ...next,
-      ...steps.map((s, i) => newTask({ id: `${rootId}.${i}`, title: s.slice(0, 60), parentId: rootId, order: now + i, confidence: 0.6 }, now)),
+      ...named,
+      ...steps.map((s, i) => newTask({ id: (String(rootId) + '.' + String(i)), title: s.slice(0, 60), parentId: rootId, order: now + i, confidence: 0.6 }, now)),
     ]
   })
-  await addTimeline($, 'task', `Goal: ${goal ?? text.slice(0, 50)}`)
+  await addTimeline($, 'task', ('Goal: ' + String(goal ?? text.slice(0, 50))))
 }
 
 /** A subagent's task gets its plan from its own instructions, as a prompt does. */
@@ -702,13 +702,13 @@ async function seedAgent($: EngineInterface, agentId: string, prompt: string) {
     const own = agentTaskOf(list, agentId)
     if (own === undefined) return list
     const hasSteps = list.some(t => t.parentId === own.id)
-    const next = list.map(t => (t.id === own.id ? { ...t, title: goal ?? t.title, confidence: steps.length > 0 ? 0.7 : 0.3 } : t))
-    if (hasSteps || own.status !== 'running') return next
+    const named = list.map(t => (t.id === own.id ? { ...t, title: goal ?? t.title, confidence: steps.length > 0 ? 0.7 : 0.3 } : t))
+    if (hasSteps || own.status !== 'running') return named
 
     return [
-      ...next,
+      ...named,
       ...steps.map((s, i) =>
-        newTask({ id: `${own.id}.${i}`, agentId, title: s.slice(0, 60), parentId: own.id, order: now + i, confidence: 0.6 }, now),
+        newTask({ id: (String(own.id) + '.' + String(i)), agentId, title: s.slice(0, 60), parentId: own.id, order: now + i, confidence: 0.6 }, now),
       ),
     ]
   })
@@ -725,13 +725,13 @@ function scheduleFlush($: EngineInterface) {
   flushTimer?.cancel()
   if (buffer.length >= opt.batchSize) {
     flushTimer = undefined
-    void flush($).catch(() => {})
+    void quietly(flush($))
 
     return
   }
   flushTimer = $.clock.after(opt.debounceMs, () => {
     flushTimer = undefined
-    void flush($).catch(() => {})
+    void quietly(flush($))
   })
 }
 
@@ -750,7 +750,7 @@ async function flush($: EngineInterface) {
     const r = await $.model.complete({
       model: opt.observerModel,
       system: OBSERVER_SYSTEM,
-      prompt: `Root task id: ${rootId ?? 'none'}\nGoal: ${goal}\nTasks: ${taskBrief(list)}\nThe batch reads as: ${kind}\nRecent tool calls:\n${lines}`,
+      prompt: ('Root task id: ' + String(rootId ?? 'none') + '\nGoal: ' + String(goal) + '\nTasks: ' + String(taskBrief(list)) + '\nThe batch reads as: ' + String(kind) + '\nRecent tool calls:\n' + String(lines)),
       maxTokens: 700,
       effort: 'low',
       timeoutMs: 25_000,
@@ -765,7 +765,7 @@ async function flush($: EngineInterface) {
     const now = nowMs()
     await setTasks($, (l, id) => applyDiff(l, diff, now, id))
     await recordDecisions($, diff.decisions, now)
-    for (const a of diff.add) await addTimeline($, 'task', `+ ${a.title}`)
+    for (const a of diff.add) await addTimeline($, 'task', ('+ ' + String(a.title)))
     flushesSinceDrift += 1
     if (flushesSinceDrift >= 4) {
       flushesSinceDrift = 0
@@ -780,7 +780,7 @@ async function flush($: EngineInterface) {
 async function recordDecisions($: EngineInterface, incoming: DecisionInput[] | undefined, now: number) {
   if (incoming === undefined || incoming.length === 0) return
   await updateDecisions($, list => applyDecisions(list, incoming, now))
-  for (const d of incoming) await addTimeline($, 'task', `Decision: ${d.title}${d.chosen !== undefined ? ` (${d.chosen})` : ''}`)
+  for (const d of incoming) await addTimeline($, 'task', ('Decision: ' + String(d.title) + String(d.chosen !== undefined ? (' (' + String(d.chosen) + ')') : '')))
 }
 
 // ---------- decisions: a Haiku pass of their own ----------
@@ -792,7 +792,7 @@ function noteForDecisions($: EngineInterface, line: string) {
   decideTimer?.cancel()
   decideTimer = $.clock.after(DECIDE_MS, () => {
     decideTimer = undefined
-    void decide($).catch(() => {})
+    void quietly(decide($))
   })
 }
 
@@ -807,7 +807,7 @@ async function decide($: EngineInterface) {
     const r = await $.model.complete({
       model: opt.observerModel,
       system: DECISION_SYSTEM,
-      prompt: `Known decisions: ${decisionBrief(known)}\nSince the last check:\n${lines.join('\n')}`,
+      prompt: ('Known decisions: ' + String(decisionBrief(known)) + '\nSince the last check:\n' + String(lines.join('\n'))),
       maxTokens: 700,
       effort: 'low',
       timeoutMs: 25_000,
@@ -823,7 +823,7 @@ async function decide($: EngineInterface) {
 
 async function checkDrift($: EngineInterface, goal: string, lines: string) {
   if (goal === '(none)') return
-  const text = `Goal: ${goal}\nRecent activity:\n${lines}`
+  const text = ('Goal: ' + String(goal) + '\nRecent activity:\n' + String(lines))
   const kind = await $.model.classify(text, ['on-task', 'off-task'], { model: opt.observerModel })
   await countObserver($, undefined, Math.ceil(text.length / 4) + 60, kind)
   await updateAlerts($, a => ({ ...a, drift: kind === 'off-task' ? 'May be off-task' : null }))
@@ -837,7 +837,7 @@ async function reconcile($: EngineInterface, answer: string) {
   const r = await $.model.complete({
     model: opt.observerModel,
     system: OBSERVER_SYSTEM,
-    prompt: `The turn just ended. Reconcile: complete the steps that are finished, merge inferred tasks that duplicate declared ones, complete the root (id ${rootId}) only if its goal looks met; if the agent is waiting on the person, set the root's status to waiting.\nTasks: ${taskBrief(list)}\nLast tool calls:\n${batch || '(none)'}\nThe agent's final answer:\n${answer.slice(0, 2500)}`,
+    prompt: ('The turn just ended. Reconcile: complete the steps that are finished, merge inferred tasks that duplicate declared ones, complete the root (id ' + String(rootId) + ') only if its goal looks met; if the agent is waiting on the person, set the root\'s status to waiting.\nTasks: ' + String(taskBrief(list)) + '\nLast tool calls:\n' + String(batch || '(none)') + '\nThe agent\'s final answer:\n' + String(answer.slice(0, 2500))),
     maxTokens: 700,
     effort: 'low',
     timeoutMs: 25_000,
@@ -848,10 +848,10 @@ async function reconcile($: EngineInterface, answer: string) {
   const now = nowMs()
   await recordDecisions($, diff.decisions, now)
   await setTasks($, (l, id) => {
-    const next = applyDiff(l, diff, now, id)
+    const applied = applyDiff(l, diff, now, id)
 
     // The root is inferred; its own completion comes through `complete`.
-    return next.map(t => (t.id === rootId && diff.complete.includes(rootId) ? { ...t, status: 'done' as const, phase: 'done' as const } : t))
+    return applied.map(t => (t.id === rootId && diff.complete.includes(rootId) ? { ...t, status: 'done' as const, phase: 'done' as const } : t))
   })
   if (diff.complete.includes(rootId)) await addTimeline($, 'task', 'Goal met')
 }
@@ -886,7 +886,7 @@ async function attribute($: EngineInterface, amount: number, agentId?: string) {
 async function attention($: EngineInterface, text: string) {
   await updateAlerts($, a => ({ ...a, attention: text }))
   await setTasks($, (list, rootId) => list.map(t => (t.id === rootId && t.status === 'running' ? { ...t, status: 'waiting' as const } : t)))
-  $.ui.toast(`Atelier: ${text}`)
+  $.ui.toast(('Atelier: ' + String(text)))
 }
 
 async function clearAttention($: EngineInterface) {
@@ -903,12 +903,12 @@ async function declare($: EngineInterface, externalId: string, subject: string, 
   await setTasks($, (list, rootId) => [
     ...list,
     newTask(
-      { id: `d${externalId}`, externalId, agentId, title: subject.slice(0, 80), parentId: declaredParent(list, rootId, agentId), source: 'declared', phase: 'planning', confidence: 1, order: now },
+      { id: ('d' + String(externalId)), externalId, agentId, title: subject.slice(0, 80), parentId: declaredParent(list, rootId, agentId), source: 'declared', phase: 'planning', confidence: 1, order: now },
       now,
     ),
   ])
-  buffer.push(`TaskCreate declared task d${externalId}: ${subject}`)
-  await addTimeline($, 'task', `Declared: ${subject}`)
+  buffer.push(('TaskCreate declared task d' + String(externalId) + ': ' + String(subject)))
+  await addTimeline($, 'task', ('Declared: ' + String(subject)))
 }
 
 async function declareUpdate($: EngineInterface, externalId: string, status: string | undefined, subject: string | undefined) {
@@ -932,14 +932,14 @@ async function declareUpdate($: EngineInterface, externalId: string, status: str
   })
   if (mapped === 'done') {
     const done = (await readTasks($)).find(t => t.externalId === externalId)
-    if (done !== undefined) await addTimeline($, 'task', `Done: ${done.title}`)
+    if (done !== undefined) await addTimeline($, 'task', ('Done: ' + String(done.title)))
   }
 }
 
 async function declareTodos($: EngineInterface, todos: readonly { content: string; status: string }[], agentId?: string) {
   const now = nowMs()
   // Each loop keeps its own todo list: one loop's TodoWrite replaces only its own.
-  const prefix = agentId === undefined ? 'todo:' : `todo:${agentId}:`
+  const prefix = agentId === undefined ? 'todo:' : ('todo:' + String(agentId) + ':')
   const isOwn = (t: Task) => t.externalId?.startsWith('todo:') === true && t.agentId === agentId
   await setTasks($, (list, rootId) => {
     const kept = list.filter(t => !(t.source === 'declared' && isOwn(t)))
@@ -948,7 +948,7 @@ async function declareTodos($: EngineInterface, todos: readonly { content: strin
     return [
       ...kept,
       ...todos.map((todo, i) => {
-        const externalId = `${prefix}${todo.content}`
+        const externalId = (String(prefix) + String(todo.content))
         const was = old.get(externalId)
         const status = mapStatus(todo.status) ?? 'pending'
 
@@ -972,7 +972,7 @@ async function recordFile($: EngineInterface, path: string, result: unknown, inp
   const { added, removed } = patchStats(result, input)
   await updateFiles($, list => {
     const was = list.find(f => f.path === path)
-    const next: FileStat = {
+    const fileStat: FileStat = {
       path,
       added: (was?.added ?? 0) + added,
       removed: (was?.removed ?? 0) + removed,
@@ -980,7 +980,7 @@ async function recordFile($: EngineInterface, path: string, result: unknown, inp
       at: nowMs(),
     }
 
-    return [...list.filter(f => f.path !== path), next].slice(-FILES_MAX)
+    return [...list.filter(f => f.path !== path), fileStat].slice(-FILES_MAX)
   })
   const isFirst = (await readFiles($)).find(f => f.path === path)?.edits === 1
   stat(d => {
@@ -988,7 +988,7 @@ async function recordFile($: EngineInterface, path: string, result: unknown, inp
     d.linesRemoved = removed
     d.filesEdited = isFirst ? 1 : 0
   })
-  if (isFirst) await addTimeline($, 'file', `Touched ${basename(path)}`)
+  if (isFirst) await addTimeline($, 'file', ('Touched ' + String(basename(path))))
   await updateConfidence($, c => ({ ...c, untestedEdits: c.untestedEdits + 1, testsPassed: null }))
 }
 
@@ -1013,13 +1013,13 @@ async function recordSpin($: EngineInterface, signature: string, isFailed: boole
   const spinsOf = (a: { spins: { signature: string; count: number; text: string }[] }) =>
     warning === undefined
       ? a.spins.filter(s => s.signature !== signature)
-      : [...a.spins.filter(s => s.signature !== signature), { signature, count: r.count, text: `${warning}: ${text}` }].slice(-3)
+      : [...a.spins.filter(s => s.signature !== signature), { signature, count: r.count, text: (String(warning) + ': ' + String(text)) }].slice(-3)
   // Most calls change no warning: no write, no redraw.
   const alerts = await readAlerts($)
   if (!isSame(spinsOf(alerts), alerts.spins)) await updateAlerts($, a => ({ ...a, spins: spinsOf(a) }))
   if (warning !== undefined && r.count === 3) {
-    $.ui.toast(`Atelier: ${warning}`)
-    await addTimeline($, 'alert', `${warning}: ${text}`)
+    $.ui.toast(('Atelier: ' + String(warning)))
+    await addTimeline($, 'alert', (String(warning) + ': ' + String(text)))
   }
 }
 
@@ -1045,12 +1045,12 @@ async function compactNow($: EngineInterface) {
 
 async function runTests($: EngineInterface) {
   const id = rid('f')
-  await pushFeed($, { id, at: nowMs(), text: `Running ${opt.testCommand}`, tool: 'atelier', state: 'running' })
+  await pushFeed($, { id, at: nowMs(), text: ('Running ' + String(opt.testCommand)), tool: 'atelier', state: 'running' })
   const r = await runTestCommand($, opt.testCommand)
   const isOk = r.exitCode === 0
-  await editFeed($, list => list.map(f => (f.id === id ? { ...f, state: isOk ? ('ok' as const) : ('error' as const), text: `Tests ${isOk ? 'passed' : `failed (${r.exitCode})`}` } : f)))
+  await editFeed($, list => list.map(f => (f.id === id ? { ...f, state: isOk ? ('ok' as const) : ('error' as const), text: ('Tests ' + String(isOk ? 'passed' : ('failed (' + String(r.exitCode) + ')'))) } : f)))
   await recordVerify($, opt.testCommand, isOk)
-  $.ui.toast(`Atelier: tests ${isOk ? 'passed' : 'failed'}`)
+  $.ui.toast(('Atelier: tests ' + String(isOk ? 'passed' : 'failed')))
 }
 
 async function runTestCommand($: EngineInterface, command: TestCommand) {
@@ -1080,12 +1080,12 @@ async function commitCheckpoint($: EngineInterface) {
   if (answer !== 'Commit') return
   const add = await $.process.run(['git', 'add', '-A'], { cwd: root || undefined })
   const r = add.exitCode === 0 ? await $.process.run(['git', 'commit', '-m', 'checkpoint (atelier)'], { cwd: root || undefined }) : add
-  $.ui.toast(r.exitCode === 0 ? 'Atelier: checkpoint committed' : `Atelier: commit failed: ${(r.stderr || r.stdout).slice(0, 80)}`)
+  $.ui.toast(r.exitCode === 0 ? 'Atelier: checkpoint committed' : ('Atelier: commit failed: ' + String((r.stderr || r.stdout).slice(0, 80))))
 }
 
 async function sendNote($: EngineInterface, text: string) {
   if (text.trim() === '') return
-  await $.prompt.submit({ text: `Note from the person (via the sidebar): ${text.trim()}` })
+  await $.prompt.submit({ text: ('Note from the person (via the sidebar): ' + String(text.trim())) })
   await updateView($, v => ({ ...v, isNoteOpen: false }))
 }
 
@@ -1093,7 +1093,7 @@ async function openDiff($: EngineInterface, path: string) {
   try {
     await $.command.run({ command: 'diff' })
   } catch {
-    $.ui.toast(`Atelier: run /diff to see the changes to ${basename(path)}`)
+    $.ui.toast(('Atelier: run /diff to see the changes to ' + String(basename(path))))
   }
 }
 
@@ -1113,14 +1113,14 @@ async function publishPeer($: EngineInterface) {
     cwd: root,
     at: now,
   }
-  await $.store.set(`peer:${sessionId}`, peer)
+  await $.store.set(('peer:' + String(sessionId)), peer)
 }
 
 async function loadPeers($: EngineInterface) {
   const now = nowMs()
   const peers: PeerSession[] = []
   for (const key of await $.store.keys()) {
-    if (!key.startsWith('peer:') || key === `peer:${sessionId}`) continue
+    if (!key.startsWith('peer:') || key === ('peer:' + String(sessionId))) continue
     const p = (await $.store.get(key)) as PeerSession | undefined
     if (p === undefined || now - p.at > PEER_TTL) {
       if (p !== undefined) await $.store.delete(key)
@@ -1147,7 +1147,7 @@ async function saveSummary($: EngineInterface) {
   const r = await $.model.complete({
     model: opt.observerModel,
     system: SUMMARY_SYSTEM,
-    prompt: `Tasks: ${taskBrief(list)}\nFiles changed: ${files || 'none'}`,
+    prompt: ('Tasks: ' + String(taskBrief(list)) + '\nFiles changed: ' + String(files || 'none')),
     maxTokens: 500,
     effort: 'low',
     timeoutMs: 25_000,
@@ -1197,25 +1197,25 @@ async function search($: EngineInterface, query: string) {
 async function answerDecision($: EngineInterface, id: string, option: string) {
   const d = (await readDecisions($)).find(x => x.id === id)
   if (d === undefined) return
-  await $.prompt.fill({ text: option === '' ? `${d.title}: ` : `${d.title}: go with ${option}.` })
+  await $.prompt.fill({ text: option === '' ? (String(d.title) + ': ') : (String(d.title) + ': go with ' + String(option) + '.') })
 }
 
 async function revertDecision($: EngineInterface, id: string) {
   const d = (await readDecisions($)).find(x => x.id === id)
   if (d === undefined) return
-  const answer = await $.ui.ask(`Ask Claude to revert "${d.title}: ${d.chosen}"?`, ['Ask Claude', 'Cancel'])
+  const answer = await $.ui.ask(('Ask Claude to revert "' + String(d.title) + ': ' + String(d.chosen) + '"?'), ['Ask Claude', 'Cancel'])
   if (answer !== 'Ask Claude') return
   await updateDecisions($, list => list.map(x => (x.id === id ? { ...x, isReverted: true } : x)))
   await $.prompt.submit({
-    text: `Please revert the change from the decision "${d.title}: ${d.chosen}"${d.outsidePlan !== undefined ? ` (${d.outsidePlan})` : ''} and keep to the plan.`,
+    text: ('Please revert the change from the decision "' + String(d.title) + ': ' + String(d.chosen) + '"' + String(d.outsidePlan !== undefined ? (' (' + String(d.outsidePlan) + ')') : '') + ' and keep to the plan.'),
   })
 }
 
 // ---------- view toggles, kept across sessions ----------
 
 async function setView($: EngineInterface, fn: (v: ViewState) => ViewState) {
-  const next = await updateView($, fn)
-  await $.store.set('view', { usageTab: next.usageTab, isDetail: next.isDetail, isStats: next.isStats })
+  const saved = await updateView($, fn)
+  await $.store.set('view', { usageTab: saved.usageTab, isDetail: saved.isDetail, isStats: saved.isStats })
 }
 
 async function loadView($: EngineInterface) {
@@ -1237,7 +1237,7 @@ function startSampler($: EngineInterface) {
   if (sampler !== undefined) return
   idleSamples = 0
   sampler = $.clock.every(RATE_MS, () => {
-    void sampleTick($).catch(() => {})
+    void quietly(sampleTick($))
   })
 }
 
@@ -1373,7 +1373,7 @@ function debugLog($: EngineInterface, text: string) {
   if (isBreakdownLogged) return
   isBreakdownLogged = true
   try {
-    void Promise.resolve($.ui.log(text, { to: 'debug' })).catch(() => {})
+    void quietly(Promise.resolve($.ui.log(text, { to: 'debug' })))
   } catch {
     // The log is a courtesy.
   }
@@ -1405,7 +1405,7 @@ async function refreshContext($: EngineInterface, plain?: { tokens?: number; win
       debugLog($, 'atelier: session.usage answered without a context breakdown; the heatmap is an estimate')
     }
   } catch (err) {
-    debugLog($, `atelier: session.usage({ breakdown }) failed: ${String(err).slice(0, 200)}; the heatmap is an estimate`)
+    debugLog($, ('atelier: session.usage({ breakdown }) failed: ' + String(String(err).slice(0, 200)) + '; the heatmap is an estimate'))
   }
   if (split === undefined) {
     const u = await readUsage($)
@@ -1489,7 +1489,7 @@ function scheduleSync($: EngineInterface) {
   syncSoon?.cancel()
   syncSoon = $.clock.after(300, () => {
     syncSoon = undefined
-    void syncAgents($).catch(() => {})
+    void quietly(syncAgents($))
   })
 }
 
@@ -1505,7 +1505,7 @@ async function syncAgents($: EngineInterface) {
   const merged = mergeAgentList(before, list, nowMs())
   const nodes = trimAgents(merged.nodes)
   hasRunningAgents = nodes.some(n => n.id !== 'main' && n.status === 'running')
-  const shape = (ns: readonly AgentNode[]) => ns.map(n => `${n.id}:${n.status}`)
+  const shape = (ns: readonly AgentNode[]) => ns.map(n => (String(n.id) + ':' + String(n.status)))
   if (merged.started.length === 0 && isSame(shape(nodes), shape(before))) return
   for (const id of merged.started) lastActivity.set(id, nowMs())
   await updateAgents($, () => trimAgents(mergeAgentList(before, list, nowMs()).nodes))
@@ -1517,12 +1517,12 @@ async function syncAgents($: EngineInterface) {
     if (spawn !== undefined) {
       pendingSpawns = pendingSpawns.filter(p => p !== spawn)
       await updateAgents($, nodes => nodes.map(n => (n.id === id ? { ...n, model: n.model || spawn.model, isBackground: spawn.isBackground } : n)))
-      await addTimeline($, 'task', `Agent: ${title}`)
+      await addTimeline($, 'task', ('Agent: ' + String(title)))
     }
     const isNew = agentTaskOf(await readTasks($), id) === undefined
     const now = nowMs()
     await setTasks($, tasks => openAgentTask(tasks, id, title, now))
-    if (isNew && opt.isObserverOn && title !== '') void seedAgent($, id, spawn?.prompt ?? title).catch(() => {})
+    if (isNew && opt.isObserverOn && title !== '') void quietly(seedAgent($, id, spawn?.prompt ?? title))
   }
   // Agents the list calls finished close their tasks, as their turn.complete would.
   for (const n of merged.nodes) {
@@ -1599,6 +1599,12 @@ async function seedStatsFromSpend($: EngineInterface): Promise<Record<string, Da
   return days
 }
 
+/** A session's first stats: count it once, then write and summarize the store's days. */
+async function startStats($: EngineInterface) {
+  await countSession($)
+  await flushStats($)
+}
+
 /** Counts a session once, however often a hot reload replays session.start. */
 async function countSession($: EngineInterface) {
   const seen = (await $.store.get('sessionsSeen')) as string[] | undefined
@@ -1610,15 +1616,33 @@ async function countSession($: EngineInterface) {
   })
 }
 
+// ---------- background work ----------
+
+/** Lets background work run; a failure there is dropped, never thrown into a hook. */
+function quietly(work: Promise<unknown>) {
+  work.catch(() => {})
+}
+
+/** Fills in the model of an agent first seen through the agent list. */
+async function fillAgentModel($: EngineInterface, agentId: string, model: string) {
+  // Read first: most steps find the model already set and write nothing.
+  const list = await readAgents($)
+  if (list.some(a => a.id === agentId && a.model === '')) await updateAgents($, l => l.map(a => (a.id === agentId && a.model === '' ? { ...a, model } : a)))
+}
+
+/** What follows a main turn: close its steps, save a summary, tell the other sessions. */
+async function afterTurn($: EngineInterface, answer: string) {
+  await reconcile($, answer)
+  await saveSummary($)
+  await publishPeer($)
+}
+
 // ---------- model steps ----------
 
 function startStep($: EngineInterface, agentId: string | undefined, model: string) {
   if (agentId !== undefined) {
     lastActivity.set(agentId, nowMs())
-    // Read first: most steps find the model already set and write nothing.
-    void readAgents($)
-      .then(list => (list.some(a => a.id === agentId && a.model === '') ? updateAgents($, l => l.map(a => (a.id === agentId && a.model === '' ? { ...a, model } : a))) : undefined))
-      .catch(() => {})
+    void quietly(fillAgentModel($, agentId, model))
   }
   streamCount += 1
   startSampler($)
@@ -1635,11 +1659,14 @@ function endStep($: EngineInterface, agentId: string | undefined, result: { answ
   }
   const answer = result.answer.trim()
   if (answer === '') return
-  if (agentId === undefined) buffer.push(`Agent said: ${answer.replace(/\s+/g, ' ').slice(0, 300)}`)
-  noteForDecisions($, `${agentId === undefined ? 'Agent' : `[agent ${agentId}]`} said: ${answer}`)
+  if (agentId === undefined) buffer.push(('Agent said: ' + String(answer.replace(/\s+/g, ' ').slice(0, 300))))
+  noteForDecisions($, (String(agentId === undefined ? 'Agent' : ('[agent ' + String(agentId) + ']')) + ' said: ' + String(answer)))
 }
 
 // ---------- tool calls ----------
+
+/** Claude's own task tools: their calls feed the task list, not the observer's batch. */
+const TASK_TOOLS = new Set(['TaskCreate', 'TaskUpdate', 'TaskGet', 'TaskList', 'TodoWrite'])
 
 /** A call between tool.call and its PostToolUse, by its tool_use_id. */
 type OpenCall = { feedId: string; tool: string; input: Record<string, unknown>; text: string; agentId?: string; calledAt: number }
@@ -1649,17 +1676,17 @@ async function startCall($: EngineInterface, input: Record<string, unknown>, too
   const text = describeCall(tool, input)
   const feedId = rid('f')
   openCalls.set(toolUseId, { feedId, tool, input, text, agentId, calledAt: nowMs() })
-  if (openCalls.size > 200) openCalls.delete(openCalls.keys().next().value as string)
+  if (openCalls.size > 200) openCalls.delete([...openCalls.keys()][0] as string)
   await pushFeed($, { id: feedId, at: nowMs(), text: feedLine(tool, input, root), tool, state: 'running', agentId })
   setCurrent($, text, agentId, text)
   if (agentId !== undefined) lastActivity.set(agentId, nowMs())
   if (agentId !== undefined && nowMs() - lastSyncAt > 1_000) {
     const isKnown = (await readAgents($)).some(a => a.id === agentId && a.status === 'running')
-    if (!isKnown) void syncAgents($).catch(() => {})
+    if (!isKnown) void quietly(syncAgents($))
   }
   if (tool === 'AskUserQuestion') {
     await attention($, 'Claude is asking you a question')
-    noteForDecisions($, `${agentId === undefined ? 'Agent' : `[agent ${agentId}]`} asks the person: ${JSON.stringify(input.questions ?? input).slice(0, 1500)}`)
+    noteForDecisions($, (String(agentId === undefined ? 'Agent' : ('[agent ' + String(agentId) + ']')) + ' asks the person: ' + String(JSON.stringify(input.questions ?? input).slice(0, 1500))))
   }
   if (agentId === undefined && typeof input.file_path === 'string') lastFile = input.file_path
   const phase = phaseOfTool(tool, typeof input.command === 'string' ? input.command : undefined)
@@ -1700,7 +1727,7 @@ async function endCall($: EngineInterface, toolUseId: string, isFailed: boolean,
     if (tool === 'Read') readChars += JSON.stringify(result ?? '').length
   }
   if (tool === 'Bash' && typeof input.command === 'string' && isVerifyCommand(input.command)) await recordVerify($, input.command, !isFailed)
-  if (!/^(TaskCreate|TaskUpdate|TaskGet|TaskList|TodoWrite)$/.test(tool)) buffer.push(summarizeCall(tool, input, isFailed ? 'error' : 'ok', agentId))
+  if (!TASK_TOOLS.has(tool)) buffer.push(summarizeCall(tool, input, isFailed ? 'error' : 'ok', agentId))
   scheduleFlush($)
 }
 
@@ -1737,7 +1764,7 @@ async function runAtelierCommand($: EngineInterface, args: string, columns: numb
     // The hits show in the sidebar's search panel.
     const hits = await search($, query)
     await open($, columns)
-    $.ui.toast(hits.length === 0 ? `Atelier: no matches for "${query}"` : `Atelier: ${hits.length} match${hits.length === 1 ? '' : 'es'} in the sidebar`)
+    $.ui.toast(hits.length === 0 ? ('Atelier: no matches for "' + String(query) + '"') : ('Atelier: ' + String(hits.length) + ' match' + String(hits.length === 1 ? '' : 'es') + ' in the sidebar'))
 
     return
   }
@@ -1758,15 +1785,13 @@ export const register: Register = (on, options) => {
     // The project folder as the event hands it, rather than read from the machine.
     root = e.cwd
     sessionStartedAt = (await $.session.usage()).startedAt
-    void loadView($).catch(() => {})
-    void flushSpend($).catch(() => {})
-    void countSession($)
-      .then(() => flushStats($))
-      .catch(() => {})
+    void quietly(loadView($))
+    void quietly(flushSpend($))
+    void quietly(startStats($))
     if (!isStatsTimerOn) {
       isStatsTimerOn = true
       $.clock.every(60_000, () => {
-        void flushStats($).catch(() => {})
+        void quietly(flushStats($))
       })
     }
     const view = await $.state.get({ plugin: 'atelier', key: 'view' })
@@ -1777,33 +1802,33 @@ export const register: Register = (on, options) => {
         ? list
         : [{ id: 'main', type: 'main', model, description: 'Main agent', status: 'idle', tokens: 0, startedAt: nowMs(), isBackground: false } satisfies AgentNode, ...list],
     )
-    void open($).catch(() => {})
+    void quietly(open($))
     // The hand-off card is off until it has a better place; summaries are still saved.
     await updateHandoff($, () => null)
-    void loadPeers($).catch(() => {})
+    void quietly(loadPeers($))
     peersTimer?.cancel()
     peersTimer = $.clock.every(20_000, () => {
-      void loadPeers($).catch(() => {})
+      void quietly(loadPeers($))
     })
-    void syncAgents($).catch(() => {})
+    void quietly(syncAgents($))
     syncTimer?.cancel()
     syncTimer = $.clock.every(5_000, () => {
       // Every 5s while work runs; once a minute when the session is idle.
       syncIdleTicks = isTurnRunning || hasRunningAgents ? 0 : syncIdleTicks + 1
-      if (syncIdleTicks % 12 === 0) void syncAgents($).catch(() => {})
+      if (syncIdleTicks % 12 === 0) void quietly(syncAgents($))
     })
 
     return next(e)
   })
 
   on('prompt.submit', async ($, e, next) => {
-    if (!isPlaced) void open($).catch(() => {})
+    if (!isPlaced) void quietly(open($))
     const isPerson = e.origin.kind === 'composer' || e.origin.kind === 'bridge' || e.origin.kind === 'sdk'
     if (!isPerson) return next(e)
     lastPhase = undefined
-    void clearAttention($).catch(() => {})
-    void updateDecisions($, list => (list.some(d => d.isPending) ? answerPending(list, e.text) : list)).catch(() => {})
-    noteForDecisions($, `Person said: ${e.text}`)
+    void quietly(clearAttention($))
+    void quietly(updateDecisions($, list => (list.some(d => d.isPending) ? answerPending(list, e.text) : list)))
+    noteForDecisions($, ('Person said: ' + String(e.text)))
     if (!looksTrivial(e.text)) {
       const id = rid('r')
       const now = nowMs()
@@ -1814,7 +1839,7 @@ export const register: Register = (on, options) => {
         newTask({ id, title, status: 'running', confidence: 0, order: now }, now),
       ])
       await updateRoot($, () => id)
-      if (opt.isObserverOn) void seed($, e.text, id).catch(() => {})
+      if (opt.isObserverOn) void quietly(seed($, e.text, id))
     }
     return next(e)
   })
@@ -1894,9 +1919,9 @@ export const register: Register = (on, options) => {
       d.turnMs = e.durationMs
       if (root !== '') d.byProject = { [root]: { cost: 0, tokens: 0, turns: 1 } }
     })
-    void flushStats($).catch(() => {})
-    void refreshContext($).catch(() => {})
-    void flushSpend($).catch(() => {})
+    void quietly(flushStats($))
+    void quietly(refreshContext($))
+    void quietly(flushSpend($))
     await updateAgents($, list =>
       list.map(a => (a.id === 'main' ? { ...a, status: 'idle' as const, tokens: a.tokens + used, currentTool: undefined } : a)),
     )
@@ -1904,8 +1929,8 @@ export const register: Register = (on, options) => {
     await publishLive($)
     await attribute($, used)
     await setTasks($, (list, rootId) => list.map(t => (t.id === rootId && t.status === 'running' ? { ...t, status: 'waiting' as const } : t)))
-    void refreshUsage($).catch(() => {})
-    void publishPeer($).catch(() => {})
+    void quietly(refreshUsage($))
+    void quietly(publishPeer($))
     flushTimer?.cancel()
     flushTimer = undefined
     const answer = e.answer
@@ -1913,13 +1938,9 @@ export const register: Register = (on, options) => {
     if (decideLines.length > 0) {
       decideTimer?.cancel()
       decideTimer = undefined
-      void decide($).catch(() => {})
+      void quietly(decide($))
     }
-    void (async () => {
-      await reconcile($, answer)
-      await saveSummary($)
-      await publishPeer($)
-    })().catch(() => {})
+    void quietly(afterTurn($, answer))
 
     return next(e)
   })
@@ -1940,7 +1961,7 @@ export const register: Register = (on, options) => {
     if (measured !== undefined && !isTurnRunning && measured !== lastMeasured) {
       lastMeasured = measured
       const ctx = await readContext($)
-      if (ctx === null || Math.abs(ctx.used - measured) > 2000) void refreshContext($, e.context).catch(() => {})
+      if (ctx === null || Math.abs(ctx.used - measured) > 2000) void quietly(refreshContext($, e.context))
     }
     const cost = e.cost?.usd
     if (cost !== undefined) {
@@ -1975,8 +1996,8 @@ export const register: Register = (on, options) => {
   })
 
   on('session.end', async ($, e, next) => {
-    if (sessionId !== '') await $.store.delete(`peer:${sessionId}`)
-    await flushStats($).catch(() => {})
+    if (sessionId !== '') await $.store.delete(('peer:' + String(sessionId)))
+    await quietly(flushStats($))
 
     return next(e)
   })
@@ -1988,7 +2009,7 @@ export const register: Register = (on, options) => {
   })
 
   on('classic.PermissionRequest', async ($, e, next) => {
-    await attention($, `Permission needed: ${e.tool_name}`)
+    await attention($, ('Permission needed: ' + String(e.tool_name)))
 
     return next(e)
   })
@@ -2008,7 +2029,7 @@ export const register: Register = (on, options) => {
     // request moved the next measurement (flicker). /atelier re-sizes it
     // from the terminal's true width.
     if (terminal !== undefined && e.props.placement === 'dock' && asked === undefined) {
-      void open($, terminal).catch(() => {})
+      void quietly(open($, terminal))
     }
     const [tasks, rootId, agents, usage, feed, current, files, alerts, view, observer, timeline, confidence, peers, handoff, found, decisions, rate, cache, context, spend] =
       await Promise.all([
@@ -2043,7 +2064,6 @@ export const register: Register = (on, options) => {
     const rootRaw = tasks.find(t => t.id === rootId)
     const steps = rootRaw === undefined ? [] : childrenOf(tasks, rootRaw.id).map(eased)
     const main = agents.find(a => a.id === 'main')
-    const swallow = (p: Promise<unknown>) => void p.catch(() => {})
     const now = await $.clock.now()
     const stats = await readStats($)
     const agentRates = await readAgentRates($)
@@ -2097,26 +2117,26 @@ export const register: Register = (on, options) => {
         search: found,
       },
       {
-        toggleUsageTab: () => swallow(setView($, v => ({ ...v, usageTab: v.usageTab === 'api' ? 'limits' : 'api' }))),
-        toggleDetail: () => swallow(setView($, v => ({ ...v, isDetail: v.isDetail !== true, isStats: false }))),
-        toggleStats: () => swallow(setView($, v => ({ ...v, isStats: v.isStats !== true, isDetail: false }))),
+        toggleUsageTab: () => quietly(setView($, v => ({ ...v, usageTab: v.usageTab === 'api' ? 'limits' : 'api' }))),
+        toggleDetail: () => quietly(setView($, v => ({ ...v, isDetail: v.isDetail !== true, isStats: false }))),
+        toggleStats: () => quietly(setView($, v => ({ ...v, isStats: v.isStats !== true, isDetail: false }))),
         cycleRange: () => {
           statsRange = RANGES[(RANGES.indexOf(statsRange) + 1) % RANGES.length] ?? 'today'
           $.ui.invalidate('ui.render')
         },
-        toggleCompact: () => swallow(updateView($, v => ({ ...v, isCompact: !v.isCompact }))),
-        toggleNote: () => swallow(updateView($, v => ({ ...v, isNoteOpen: !v.isNoteOpen }))),
-        stop: () => swallow(interrupt($)),
-        compact: () => swallow(compactNow($)),
-        tests: () => swallow(runTests($)),
-        checkpoint: () => swallow(commitCheckpoint($)),
-        sendNote: text => swallow(sendNote($, text)),
-        answer: (id, option) => swallow(answerDecision($, id, option)),
-        revert: id => swallow(revertDecision($, id)),
-        openDiff: path => swallow(openDiff($, path)),
-        useHandoff: () => (handoff === null ? undefined : swallow($.prompt.fill({ text: handoffText(handoff) }))),
-        dismissHandoff: () => swallow(updateHandoff($, () => null)),
-        closeSearch: () => swallow(updateSearch($, () => null)),
+        toggleCompact: () => quietly(updateView($, v => ({ ...v, isCompact: !v.isCompact }))),
+        toggleNote: () => quietly(updateView($, v => ({ ...v, isNoteOpen: !v.isNoteOpen }))),
+        stop: () => quietly(interrupt($)),
+        compact: () => quietly(compactNow($)),
+        tests: () => quietly(runTests($)),
+        checkpoint: () => quietly(commitCheckpoint($)),
+        sendNote: text => quietly(sendNote($, text)),
+        answer: (id, option) => quietly(answerDecision($, id, option)),
+        revert: id => quietly(revertDecision($, id)),
+        openDiff: path => quietly(openDiff($, path)),
+        useHandoff: () => (handoff === null ? undefined : quietly($.prompt.fill({ text: handoffText(handoff) }))),
+        dismissHandoff: () => quietly(updateHandoff($, () => null)),
+        closeSearch: () => quietly(updateSearch($, () => null)),
       },
     )
   })
