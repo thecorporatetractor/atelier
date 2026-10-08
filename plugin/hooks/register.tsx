@@ -171,281 +171,90 @@ function emptyCache(): HeldCache {
 const TASKS = { plugin: 'atelier', key: 'tasks' } as const
 
 
-async function updateTasks($: EngineInterface, change: (value: HeldTasks) => HeldTasks): Promise<void> {
-  for (;;) {
-    const held = await $.state.get(TASKS)
-    const value = change(held.value ?? [])
-    const written = await $.state.set(TASKS, value, { ifVersion: held.version })
-    if (written.isSet) return
-  }
-}
 
 const ROOT = { plugin: 'atelier', key: 'rootId' } as const
 
 
-async function updateRoot($: EngineInterface, change: (value: HeldRootId) => HeldRootId): Promise<void> {
-  for (;;) {
-    const held = await $.state.get(ROOT)
-    const value = change(held.value ?? null)
-    const written = await $.state.set(ROOT, value, { ifVersion: held.version })
-    if (written.isSet) return
-  }
-}
 
 const AGENTS = { plugin: 'atelier', key: 'agents' } as const
 
 
-async function updateAgents($: EngineInterface, change: (value: HeldAgents) => HeldAgents): Promise<void> {
-  for (;;) {
-    const held = await $.state.get(AGENTS)
-    const value = change(held.value ?? [])
-    const written = await $.state.set(AGENTS, value, { ifVersion: held.version })
-    if (written.isSet) return
-  }
-}
 
 const USAGE = { plugin: 'atelier', key: 'usage' } as const
 
 
-async function updateUsage($: EngineInterface, change: (value: HeldUsage) => HeldUsage): Promise<void> {
-  for (;;) {
-    const held = await $.state.get(USAGE)
-    const value = change(held.value ?? null)
-    const written = await $.state.set(USAGE, value, { ifVersion: held.version })
-    if (written.isSet) return
-  }
-}
 
 const FEED = { plugin: 'atelier', key: 'feed' } as const
 
 
-async function updateFeed($: EngineInterface, change: (value: HeldFeed) => HeldFeed): Promise<void> {
-  for (;;) {
-    const held = await $.state.get(FEED)
-    const value = change(held.value ?? [])
-    const written = await $.state.set(FEED, value, { ifVersion: held.version })
-    if (written.isSet) return
-  }
-}
 
 const CURRENT = { plugin: 'atelier', key: 'current' } as const
 
 
-async function updateCurrent($: EngineInterface, change: (value: HeldCurrent) => HeldCurrent): Promise<void> {
-  for (;;) {
-    const held = await $.state.get(CURRENT)
-    const value = change(held.value ?? null)
-    const written = await $.state.set(CURRENT, value, { ifVersion: held.version })
-    if (written.isSet) return
-  }
-}
 
 const FILES = { plugin: 'atelier', key: 'files' } as const
 
 
-async function updateFiles($: EngineInterface, change: (value: HeldFiles) => HeldFiles): Promise<void> {
-  for (;;) {
-    const held = await $.state.get(FILES)
-    const value = change(held.value ?? [])
-    const written = await $.state.set(FILES, value, { ifVersion: held.version })
-    if (written.isSet) return
-  }
-}
 
 const ALERTS = { plugin: 'atelier', key: 'alerts' } as const
 
 
-async function updateAlerts($: EngineInterface, change: (value: HeldAlerts) => HeldAlerts): Promise<void> {
-  for (;;) {
-    const held = await $.state.get(ALERTS)
-    const value = change(held.value ?? { attention: null, spins: [], drift: null })
-    const written = await $.state.set(ALERTS, value, { ifVersion: held.version })
-    if (written.isSet) return
-  }
-}
 
 const VIEW = { plugin: 'atelier', key: 'view' } as const
 
 
-async function updateView($: EngineInterface, change: (value: HeldView) => HeldView): Promise<void> {
-  for (;;) {
-    const held = await $.state.get(VIEW)
-    const value = change(held.value ?? {
-  isCompact: false,
-  isNoteOpen: false,
-  usageTab: 'limits',
-  isDetail: false,
-})
-    const written = await $.state.set(VIEW, value, { ifVersion: held.version })
-    if (written.isSet) return
-  }
-}
 
 const OBSERVER = { plugin: 'atelier', key: 'observer' } as const
 
 
-async function updateObserver($: EngineInterface, change: (value: HeldObserver) => HeldObserver): Promise<void> {
-  for (;;) {
-    const held = await $.state.get(OBSERVER)
-    const value = change(held.value ?? {
-  calls: 0,
-  inputTokens: 0,
-  outputTokens: 0,
-  lastKind: null,
-  dropped: 0,
-})
-    const written = await $.state.set(OBSERVER, value, { ifVersion: held.version })
-    if (written.isSet) return
-  }
-}
 
 const TIMELINE = { plugin: 'atelier', key: 'timeline' } as const
 
 
-async function updateTimeline($: EngineInterface, change: (value: HeldTimeline) => HeldTimeline): Promise<void> {
-  for (;;) {
-    const held = await $.state.get(TIMELINE)
-    const value = change(held.value ?? [])
-    const written = await $.state.set(TIMELINE, value, { ifVersion: held.version })
-    if (written.isSet) return
-  }
-}
 
 const CONFIDENCE = { plugin: 'atelier', key: 'confidence' } as const
 
 
-async function updateConfidence($: EngineInterface, change: (value: HeldConfidence) => HeldConfidence): Promise<void> {
-  for (;;) {
-    const held = await $.state.get(CONFIDENCE)
-    const value = change(held.value ?? {
-  untestedEdits: 0,
-  testsPassed: null,
-  typecheckClean: null,
-})
-    const written = await $.state.set(CONFIDENCE, value, { ifVersion: held.version })
-    if (written.isSet) return
-  }
-}
 
 const PEERS = { plugin: 'atelier', key: 'peers' } as const
 
 
-async function updatePeers($: EngineInterface, change: (value: HeldPeers) => HeldPeers): Promise<void> {
-  for (;;) {
-    const held = await $.state.get(PEERS)
-    const value = change(held.value ?? [])
-    const written = await $.state.set(PEERS, value, { ifVersion: held.version })
-    if (written.isSet) return
-  }
-}
 
 const HANDOFF = { plugin: 'atelier', key: 'handoff' } as const
 
 
-async function updateHandoff($: EngineInterface, change: (value: HeldHandoff) => HeldHandoff): Promise<void> {
-  for (;;) {
-    const held = await $.state.get(HANDOFF)
-    const value = change(held.value ?? null)
-    const written = await $.state.set(HANDOFF, value, { ifVersion: held.version })
-    if (written.isSet) return
-  }
-}
 
 const SEARCH = { plugin: 'atelier', key: 'search' } as const
 
 
-async function updateSearch($: EngineInterface, change: (value: HeldSearch) => HeldSearch): Promise<void> {
-  for (;;) {
-    const held = await $.state.get(SEARCH)
-    const value = change(held.value ?? null)
-    const written = await $.state.set(SEARCH, value, { ifVersion: held.version })
-    if (written.isSet) return
-  }
-}
 
 const DECISIONS = { plugin: 'atelier', key: 'decisions' } as const
 
 
-async function updateDecisions($: EngineInterface, change: (value: HeldDecisions) => HeldDecisions): Promise<void> {
-  for (;;) {
-    const held = await $.state.get(DECISIONS)
-    const value = change(held.value ?? [])
-    const written = await $.state.set(DECISIONS, value, { ifVersion: held.version })
-    if (written.isSet) return
-  }
-}
 
 const RATE = { plugin: 'atelier', key: 'rate' } as const
 
 
-async function updateRate($: EngineInterface, change: (value: HeldRate) => HeldRate): Promise<void> {
-  for (;;) {
-    const held = await $.state.get(RATE)
-    const value = change(held.value ?? { samples: [], peak: 0, sum: 0, count: 0, tokens: 0 })
-    const written = await $.state.set(RATE, value, { ifVersion: held.version })
-    if (written.isSet) return
-  }
-}
 
 const CACHE = { plugin: 'atelier', key: 'cache' } as const
 
 
-async function updateCache($: EngineInterface, change: (value: HeldCache) => HeldCache): Promise<void> {
-  for (;;) {
-    const held = await $.state.get(CACHE)
-    const value = change(held.value ?? { lastHitAt: null, ttlMs: CACHE_TTL_MS, readTokens: 0, inputTokens: 0 })
-    const written = await $.state.set(CACHE, value, { ifVersion: held.version })
-    if (written.isSet) return
-  }
-}
 
 const CONTEXT = { plugin: 'atelier', key: 'context' } as const
 
 
-async function updateContext($: EngineInterface, change: (value: HeldContext) => HeldContext): Promise<void> {
-  for (;;) {
-    const held = await $.state.get(CONTEXT)
-    const value = change(held.value ?? null)
-    const written = await $.state.set(CONTEXT, value, { ifVersion: held.version })
-    if (written.isSet) return
-  }
-}
 
 const SPEND = { plugin: 'atelier', key: 'spend' } as const
 
 
-async function updateSpend($: EngineInterface, change: (value: HeldSpend) => HeldSpend): Promise<void> {
-  for (;;) {
-    const held = await $.state.get(SPEND)
-    const value = change(held.value ?? null)
-    const written = await $.state.set(SPEND, value, { ifVersion: held.version })
-    if (written.isSet) return
-  }
-}
 
 const STATS = { plugin: 'atelier', key: 'stats' } as const
 
 
-async function updateStats($: EngineInterface, change: (value: HeldStats) => HeldStats): Promise<void> {
-  for (;;) {
-    const held = await $.state.get(STATS)
-    const value = change(held.value ?? null)
-    const written = await $.state.set(STATS, value, { ifVersion: held.version })
-    if (written.isSet) return
-  }
-}
 
 const AGENT_RATES = { plugin: 'atelier', key: 'agentRates' } as const
 
 
-async function updateAgentRates($: EngineInterface, change: (value: HeldAgentRates) => HeldAgentRates): Promise<void> {
-  for (;;) {
-    const held = await $.state.get(AGENT_RATES)
-    const value = change(held.value ?? {})
-    const written = await $.state.set(AGENT_RATES, value, { ifVersion: held.version })
-    if (written.isSet) return
-  }
-}
 
 let opt: Options = readOptions({})
 let isPlaced = false
@@ -530,7 +339,12 @@ async function setTasks($: EngineInterface, fn: (list: Task[], rootId: string | 
   const tasksNowHeld = await $.state.get(TASKS)
   const tasksNow = tasksNowHeld.value ?? []
   if (isSame(settle(fn(tasksNow, rootId)), tasksNow)) return
-  await updateTasks($, list => settle(fn(list, rootId)))
+  for (;;) {
+    const change: (value: HeldTasks) => HeldTasks = list => settle(fn(list, rootId))
+    const held = await $.state.get(TASKS)
+    const written = await $.state.set(TASKS, change(held.value ?? []), { ifVersion: held.version })
+    if (written.isSet) break
+  }
   isSummaryDirty = true
   startTicker($)
 }
@@ -573,27 +387,41 @@ async function publishLive($: EngineInterface) {
   if (isFeedDirty && liveFeed !== undefined) {
     isFeedDirty = false
     const feed = liveFeed
-    await updateFeed($, () => feed)
+    await $.state.set(FEED, feed)
   }
   if (liveCurrent !== undefined) {
     const current = liveCurrent
     liveCurrent = undefined
     const currentNowHeld = await $.state.get(CURRENT)
     const currentNow = currentNowHeld.value ?? null
-    if (current !== currentNow) await updateCurrent($, () => current)
+    if (current !== currentNow) {
+      await $.state.set(CURRENT, current)
+    }
   }
   if (liveTools.size > 0) {
     const tools = new Map(liveTools)
     liveTools.clear()
     const agentsHeld = await $.state.get(AGENTS)
     const agents = agentsHeld.value ?? []
-    if (applyCurrentTools(agents, tools) !== agents) await updateAgents($, list => [...applyCurrentTools(list, tools)])
+    if (applyCurrentTools(agents, tools) !== agents) {
+      for (;;) {
+        const change: (value: HeldAgents) => HeldAgents = list => [...applyCurrentTools(list, tools)]
+        const held = await $.state.get(AGENTS)
+        const written = await $.state.set(AGENTS, change(held.value ?? []), { ifVersion: held.version })
+        if (written.isSet) break
+      }
+    }
   }
 }
 
 async function addTimeline($: EngineInterface, kind: TimelineKind, text: string, feedId?: string) {
   const entry: TimelineEntry = { id: rid('t'), at: nowMs(), kind, text, feedId }
-  await updateTimeline($, list => [...list, entry].slice(-TIMELINE_MAX))
+  for (;;) {
+    const change: (value: HeldTimeline) => HeldTimeline = list => [...list, entry].slice(-TIMELINE_MAX)
+    const held = await $.state.get(TIMELINE)
+    const written = await $.state.set(TIMELINE, change(held.value ?? []), { ifVersion: held.version })
+    if (written.isSet) break
+  }
 }
 
 async function countObserver($: EngineInterface, usage: ModelUsage | undefined, estimate: number, kind?: string) {
@@ -604,13 +432,18 @@ async function countObserver($: EngineInterface, usage: ModelUsage | undefined, 
       output: usage === undefined ? 4 : usage.output_tokens,
     }
   })
-  await updateObserver($, o => ({
-    ...o,
-    calls: o.calls + 1,
-    inputTokens: o.inputTokens + (usage === undefined ? estimate : usage.input_tokens + usage.cache_creation_input_tokens + usage.cache_read_input_tokens),
-    outputTokens: o.outputTokens + (usage === undefined ? 4 : usage.output_tokens),
-    lastKind: kind ?? o.lastKind,
-  }))
+  for (;;) {
+    const change: (value: HeldObserver) => HeldObserver = o => ({
+      ...o,
+      calls: o.calls + 1,
+      inputTokens: o.inputTokens + (usage === undefined ? estimate : usage.input_tokens + usage.cache_creation_input_tokens + usage.cache_read_input_tokens),
+      outputTokens: o.outputTokens + (usage === undefined ? 4 : usage.output_tokens),
+      lastKind: kind ?? o.lastKind,
+    })
+    const held = await $.state.get(OBSERVER)
+    const written = await $.state.set(OBSERVER, change(held.value ?? emptyObserver()), { ifVersion: held.version })
+    if (written.isSet) break
+  }
 }
 
 // Eases shown bars toward their targets and keeps elapsed times live; stops
@@ -666,7 +499,12 @@ async function seed($: EngineInterface, text: string, rootId: string) {
   await countObserver($, undefined, Math.ceil(text.length / 4) + 80, kind)
   if (kind === 'question-or-chat') {
     await setTasks($, list => list.filter(t => t.id !== rootId))
-    await updateRoot($, id => (id === rootId ? null : id))
+    for (;;) {
+      const change: (value: HeldRootId) => HeldRootId = id => (id === rootId ? null : id)
+      const held = await $.state.get(ROOT)
+      const written = await $.state.set(ROOT, change(held.value ?? null), { ifVersion: held.version })
+      if (written.isSet) break
+    }
 
     return
   }
@@ -777,7 +615,12 @@ async function flush($: EngineInterface) {
     await countObserver($, r.usage, 0)
     const diff = r.isAnswered ? parseDiff(r.text) : undefined
     if (diff === undefined) {
-      await updateObserver($, o => ({ ...o, dropped: o.dropped + 1 }))
+      for (;;) {
+        const change: (value: HeldObserver) => HeldObserver = o => ({ ...o, dropped: o.dropped + 1 })
+        const held = await $.state.get(OBSERVER)
+        const written = await $.state.set(OBSERVER, change(held.value ?? emptyObserver()), { ifVersion: held.version })
+        if (written.isSet) break
+      }
 
       return
     }
@@ -798,7 +641,12 @@ async function flush($: EngineInterface) {
 
 async function recordDecisions($: EngineInterface, incoming: DecisionInput[] | undefined, now: number) {
   if (incoming === undefined || incoming.length === 0) return
-  await updateDecisions($, list => applyDecisions(list, incoming, now))
+  for (;;) {
+    const change: (value: HeldDecisions) => HeldDecisions = list => applyDecisions(list, incoming, now)
+    const held = await $.state.get(DECISIONS)
+    const written = await $.state.set(DECISIONS, change(held.value ?? []), { ifVersion: held.version })
+    if (written.isSet) break
+  }
   for (const d of incoming) await addTimeline($, 'task', ('Decision: ' + String(d.title) + String(d.chosen !== undefined ? (' (' + String(d.chosen) + ')') : '')))
 }
 
@@ -846,7 +694,12 @@ async function checkDrift($: EngineInterface, goal: string, lines: string) {
   const text = ('Goal: ' + String(goal) + '\nRecent activity:\n' + String(lines))
   const kind = await $.model.classify(text, ['on-task', 'off-task'], { model: opt.observerModel })
   await countObserver($, undefined, Math.ceil(text.length / 4) + 60, kind)
-  await updateAlerts($, a => ({ ...a, drift: kind === 'off-task' ? 'May be off-task' : null }))
+  for (;;) {
+    const change: (value: HeldAlerts) => HeldAlerts = a => ({ ...a, drift: kind === 'off-task' ? 'May be off-task' : null })
+    const held = await $.state.get(ALERTS)
+    const written = await $.state.set(ALERTS, change(held.value ?? emptyAlerts()), { ifVersion: held.version })
+    if (written.isSet) break
+  }
 }
 
 async function reconcile($: EngineInterface, answer: string) {
@@ -889,7 +742,7 @@ async function refreshUsage($: EngineInterface) {
     costUsd: u.cost?.usd,
     rateLimits: u.rateLimits.map(r => ({ kind: r.kind, percentUsed: r.percentUsed, resetsAt: r.resetsAt })),
   }
-  await updateUsage($, () => view)
+  await $.state.set(USAGE, view)
 }
 
 /** Charges usage to the loop's own work: a subagent's to its task, the main loop's under the root. */
@@ -897,17 +750,27 @@ async function attribute($: EngineInterface, amount: number, agentId?: string) {
   if (amount <= 0) return
   const rootIdHeld = await $.state.get(ROOT)
   const rootId = rootIdHeld.value ?? null
-  await updateTasks($, list => {
-    const id = chargeableFor(list, rootId, agentId)
-
-    return list.map(t => (t.id === id ? { ...t, tokens: t.tokens + amount } : t))
-  })
+  for (;;) {
+    const change: (value: HeldTasks) => HeldTasks = list => {
+      const id = chargeableFor(list, rootId, agentId)
+  
+      return list.map(t => (t.id === id ? { ...t, tokens: t.tokens + amount } : t))
+    }
+    const held = await $.state.get(TASKS)
+    const written = await $.state.set(TASKS, change(held.value ?? []), { ifVersion: held.version })
+    if (written.isSet) break
+  }
 }
 
 // ---------- alerts ----------
 
 async function attention($: EngineInterface, text: string) {
-  await updateAlerts($, a => ({ ...a, attention: text }))
+  for (;;) {
+    const change: (value: HeldAlerts) => HeldAlerts = a => ({ ...a, attention: text })
+    const held = await $.state.get(ALERTS)
+    const written = await $.state.set(ALERTS, change(held.value ?? emptyAlerts()), { ifVersion: held.version })
+    if (written.isSet) break
+  }
   await setTasks($, (list, rootId) => list.map(t => (t.id === rootId && t.status === 'running' ? { ...t, status: 'waiting' as const } : t)))
   $.ui.toast(('Atelier: ' + String(text)))
 }
@@ -916,7 +779,12 @@ async function clearAttention($: EngineInterface) {
   const aHeld = await $.state.get(ALERTS)
   const a = aHeld.value ?? emptyAlerts()
   if (a.attention === null) return
-  await updateAlerts($, x => ({ ...x, attention: null }))
+  for (;;) {
+    const change: (value: HeldAlerts) => HeldAlerts = x => ({ ...x, attention: null })
+    const held = await $.state.get(ALERTS)
+    const written = await $.state.set(ALERTS, change(held.value ?? emptyAlerts()), { ifVersion: held.version })
+    if (written.isSet) break
+  }
   await setTasks($, (list, rootId) => list.map(t => (t.id === rootId && t.status === 'waiting' ? { ...t, status: 'running' as const } : t)))
 }
 
@@ -996,18 +864,23 @@ async function declareTodos($: EngineInterface, todos: readonly { content: strin
 
 async function recordFile($: EngineInterface, path: string, result: unknown, input: Record<string, unknown>) {
   const { added, removed } = patchStats(result, input)
-  await updateFiles($, list => {
-    const was = list.find(f => f.path === path)
-    const fileStat: FileStat = {
-      path,
-      added: (was?.added ?? 0) + added,
-      removed: (was?.removed ?? 0) + removed,
-      edits: (was?.edits ?? 0) + 1,
-      at: nowMs(),
+  for (;;) {
+    const change: (value: HeldFiles) => HeldFiles = list => {
+      const was = list.find(f => f.path === path)
+      const fileStat: FileStat = {
+        path,
+        added: (was?.added ?? 0) + added,
+        removed: (was?.removed ?? 0) + removed,
+        edits: (was?.edits ?? 0) + 1,
+        at: nowMs(),
+      }
+  
+      return [...list.filter(f => f.path !== path), fileStat].slice(-FILES_MAX)
     }
-
-    return [...list.filter(f => f.path !== path), fileStat].slice(-FILES_MAX)
-  })
+    const held = await $.state.get(FILES)
+    const written = await $.state.set(FILES, change(held.value ?? []), { ifVersion: held.version })
+    if (written.isSet) break
+  }
   const filesNowHeld = await $.state.get(FILES)
   const filesNow = filesNowHeld.value ?? []
   const isFirst = filesNow.find(f => f.path === path)?.edits === 1
@@ -1017,7 +890,12 @@ async function recordFile($: EngineInterface, path: string, result: unknown, inp
     d.filesEdited = isFirst ? 1 : 0
   })
   if (isFirst) await addTimeline($, 'file', ('Touched ' + String(basename(path))))
-  await updateConfidence($, c => ({ ...c, untestedEdits: c.untestedEdits + 1, testsPassed: null }))
+  for (;;) {
+    const change: (value: HeldConfidence) => HeldConfidence = c => ({ ...c, untestedEdits: c.untestedEdits + 1, testsPassed: null })
+    const held = await $.state.get(CONFIDENCE)
+    const written = await $.state.set(CONFIDENCE, change(held.value ?? emptyConfidence()), { ifVersion: held.version })
+    if (written.isSet) break
+  }
 }
 
 async function recordVerify($: EngineInterface, command: string, isOk: boolean) {
@@ -1027,11 +905,16 @@ async function recordVerify($: EngineInterface, command: string, isOk: boolean) 
       d.testsFailed = isOk ? 0 : 1
     })
   }
-  await updateConfidence($, (c): Confidence => {
-    if (isTypecheckCommand(command)) return { ...c, typecheckClean: isOk }
-
-    return { ...c, testsPassed: isOk, untestedEdits: isOk ? 0 : c.untestedEdits, lastPassAt: isOk ? nowMs() : c.lastPassAt }
-  })
+  for (;;) {
+    const change: (value: HeldConfidence) => HeldConfidence = (c): Confidence => {
+      if (isTypecheckCommand(command)) return { ...c, typecheckClean: isOk }
+  
+      return { ...c, testsPassed: isOk, untestedEdits: isOk ? 0 : c.untestedEdits, lastPassAt: isOk ? nowMs() : c.lastPassAt }
+    }
+    const held = await $.state.get(CONFIDENCE)
+    const written = await $.state.set(CONFIDENCE, change(held.value ?? emptyConfidence()), { ifVersion: held.version })
+    if (written.isSet) break
+  }
 }
 
 async function recordSpin($: EngineInterface, signature: string, isFailed: boolean, text: string) {
@@ -1045,7 +928,14 @@ async function recordSpin($: EngineInterface, signature: string, isFailed: boole
   // Most calls change no warning: no write, no redraw.
   const alertsHeld = await $.state.get(ALERTS)
   const alerts = alertsHeld.value ?? emptyAlerts()
-  if (!isSame(spinsOf(alerts), alerts.spins)) await updateAlerts($, a => ({ ...a, spins: spinsOf(a) }))
+  if (!isSame(spinsOf(alerts), alerts.spins)) {
+    for (;;) {
+      const change: (value: HeldAlerts) => HeldAlerts = a => ({ ...a, spins: spinsOf(a) })
+      const held = await $.state.get(ALERTS)
+      const written = await $.state.set(ALERTS, change(held.value ?? emptyAlerts()), { ifVersion: held.version })
+      if (written.isSet) break
+    }
+  }
   if (warning !== undefined && r.count === 3) {
     $.ui.toast(('Atelier: ' + String(warning)))
     await addTimeline($, 'alert', (String(warning) + ': ' + String(text)))
@@ -1121,7 +1011,12 @@ async function commitCheckpoint($: EngineInterface) {
 async function sendNote($: EngineInterface, text: string) {
   if (text.trim() === '') return
   await $.prompt.submit({ text: ('Note from the person (via the sidebar): ' + String(text.trim())) })
-  await updateView($, v => ({ ...v, isNoteOpen: false }))
+  for (;;) {
+    const change: (value: HeldView) => HeldView = v => ({ ...v, isNoteOpen: false })
+    const held = await $.state.get(VIEW)
+    const written = await $.state.set(VIEW, change(held.value ?? emptyView()), { ifVersion: held.version })
+    if (written.isSet) break
+  }
 }
 
 async function openDiff($: EngineInterface, path: string) {
@@ -1167,7 +1062,7 @@ async function loadPeers($: EngineInterface) {
     }
     peers.push(p)
   }
-  await updatePeers($, () => peers)
+  await $.state.set(PEERS, peers)
 }
 
 /** The stored session summaries, or none when the store holds something else. */
@@ -1211,12 +1106,6 @@ async function saveSummary($: EngineInterface) {
   await $.store.set('summaries', [...all.filter(s => s.sessionId !== sessionId), summary].slice(-SUMMARIES_MAX))
 }
 
-async function loadHandoff($: EngineInterface) {
-  const allStored = await $.store.get('summaries')
-  const all = asSummaries(allStored)
-  const last = all.filter(s => s.root === root && s.sessionId !== sessionId && nowMs() - s.at < 14 * 86_400_000).at(-1)
-  await updateHandoff($, () => last ?? null)
-}
 
 async function search($: EngineInterface, query: string) {
   const q = query.toLowerCase()
@@ -1234,7 +1123,7 @@ async function search($: EngineInterface, query: string) {
     if (t.title.toLowerCase().includes(q)) hits.push({ at: t.updatedAt, text: t.title, source: 'this session' })
   }
   hits.sort((a, b) => b.at - a.at)
-  await updateSearch($, () => ({ query, hits: hits.slice(0, 20) }))
+  await $.state.set(SEARCH, ({ query, hits: hits.slice(0, 20) }))
 }
 
 // ---------- decisions ----------
@@ -1254,7 +1143,12 @@ async function revertDecision($: EngineInterface, id: string) {
   if (d === undefined) return
   const answer = await $.ui.ask(('Ask Claude to revert "' + String(d.title) + ': ' + String(d.chosen) + '"?'), ['Ask Claude', 'Cancel'])
   if (answer !== 'Ask Claude') return
-  await updateDecisions($, list => list.map(x => (x.id === id ? { ...x, isReverted: true } : x)))
+  for (;;) {
+    const change: (value: HeldDecisions) => HeldDecisions = list => list.map(x => (x.id === id ? { ...x, isReverted: true } : x))
+    const held = await $.state.get(DECISIONS)
+    const written = await $.state.set(DECISIONS, change(held.value ?? []), { ifVersion: held.version })
+    if (written.isSet) break
+  }
   await $.prompt.submit({
     text: ('Please revert the change from the decision "' + String(d.title) + ': ' + String(d.chosen) + '"' + String(d.outsidePlan !== undefined ? (' (' + String(d.outsidePlan) + ')') : '') + ' and keep to the plan.'),
   })
@@ -1262,8 +1156,49 @@ async function revertDecision($: EngineInterface, id: string) {
 
 // ---------- view toggles, kept across sessions ----------
 
+/** The sidebar's own buttons: each writes its one value. */
+async function toggleCompact($: EngineInterface) {
+  for (;;) {
+    const change: (value: HeldView) => HeldView = v => ({ ...v, isCompact: !v.isCompact })
+    const held = await $.state.get(VIEW)
+    const written = await $.state.set(VIEW, change(held.value ?? emptyView()), { ifVersion: held.version })
+    if (written.isSet) break
+  }
+}
+
+async function toggleNote($: EngineInterface) {
+  for (;;) {
+    const change: (value: HeldView) => HeldView = v => ({ ...v, isNoteOpen: !v.isNoteOpen })
+    const held = await $.state.get(VIEW)
+    const written = await $.state.set(VIEW, change(held.value ?? emptyView()), { ifVersion: held.version })
+    if (written.isSet) break
+  }
+}
+
+async function dismissHandoff($: EngineInterface) {
+  await $.state.set(HANDOFF, null)
+}
+
+async function closeSearch($: EngineInterface) {
+  await $.state.set(SEARCH, null)
+}
+
+/** A person's prompt answers the open decision question, if one waits. */
+async function answerFromPrompt($: EngineInterface, text: string) {
+  for (;;) {
+    const change: (value: HeldDecisions) => HeldDecisions = list => (list.some(d => d.isPending) ? answerPending(list, text) : list)
+    const held = await $.state.get(DECISIONS)
+    const written = await $.state.set(DECISIONS, change(held.value ?? []), { ifVersion: held.version })
+    if (written.isSet) break
+  }
+}
+
 async function setView($: EngineInterface, fn: (v: ViewState) => ViewState) {
-  await updateView($, fn)
+  for (;;) {
+    const held = await $.state.get(VIEW)
+    const written = await $.state.set(VIEW, fn(held.value ?? emptyView()), { ifVersion: held.version })
+    if (written.isSet) break
+  }
   const savedHeld = await $.state.get(VIEW)
   const saved = savedHeld.value ?? emptyView()
   await $.store.set('view', { usageTab: saved.usageTab, isDetail: saved.isDetail, isStats: saved.isStats })
@@ -1273,12 +1208,17 @@ async function loadView($: EngineInterface) {
   const stored = await $.store.get('view')
   const saved = stored as Partial<ViewState> | undefined
   if (saved === undefined || typeof saved !== 'object') return
-  await updateView($, v => ({
-    ...v,
-    usageTab: saved.usageTab === 'api' ? ('api' as const) : ('limits' as const),
-    isDetail: saved.isDetail === true,
-    isStats: saved.isStats === true,
-  }))
+  for (;;) {
+    const change: (value: HeldView) => HeldView = v => ({
+      ...v,
+      usageTab: saved.usageTab === 'api' ? ('api' as const) : ('limits' as const),
+      isDetail: saved.isDetail === true,
+      isStats: saved.isStats === true,
+    })
+    const held = await $.state.get(VIEW)
+    const written = await $.state.set(VIEW, change(held.value ?? emptyView()), { ifVersion: held.version })
+    if (written.isSet) break
+  }
 }
 
 // ---------- tok/s, cache, context, spend ----------
@@ -1317,22 +1257,32 @@ async function pushAgentSamples($: EngineInterface) {
   const agentsNow = agentsNowHeld.value ?? []
   const known = new Set(agentsNow.map(a => a.id))
   for (const [key, n] of by) if (n > 0) sampledBy.add(key)
-  await updateAgentRates($, rates => appendRates(rates, by, known, RATE_MS, RATE_WINDOW))
+  for (;;) {
+    const change: (value: HeldAgentRates) => HeldAgentRates = rates => appendRates(rates, by, known, RATE_MS, RATE_WINDOW)
+    const held = await $.state.get(AGENT_RATES)
+    const written = await $.state.set(AGENT_RATES, change(held.value ?? {}), { ifVersion: held.version })
+    if (written.isSet) break
+  }
 }
 
 async function pushSamples($: EngineInterface, rates: number[]) {
-  await updateRate($, r => {
-    const samples = [...r.samples, ...rates].slice(-RATE_WINDOW)
-    const live = rates.filter(x => x > 0)
-
-    return {
-      ...r,
-      samples,
-      peak: Math.max(0, ...samples),
-      sum: r.sum + live.reduce((a, b) => a + b, 0),
-      count: r.count + live.length,
+  for (;;) {
+    const change: (value: HeldRate) => HeldRate = r => {
+      const samples = [...r.samples, ...rates].slice(-RATE_WINDOW)
+      const live = rates.filter(x => x > 0)
+  
+      return {
+        ...r,
+        samples,
+        peak: Math.max(0, ...samples),
+        sum: r.sum + live.reduce((a, b) => a + b, 0),
+        count: r.count + live.length,
+      }
     }
-  })
+    const held = await $.state.get(RATE)
+    const written = await $.state.set(RATE, change(held.value ?? emptyRate()), { ifVersion: held.version })
+    if (written.isSet) break
+  }
 }
 
 /** Tallies one step's usage for its loop; no state write until the tick. */
@@ -1367,14 +1317,29 @@ async function flushSteps($: EngineInterface) {
     input += t.input
     isHit = isHit || t.isHit
   }
-  await updateCache($, c => ({
-    ...c,
-    lastHitAt: isHit ? now : c.lastHitAt,
-    readTokens: c.readTokens + cacheRead,
-    inputTokens: c.inputTokens + input,
-  }))
-  await updateRate($, r => ({ ...r, tokens: r.tokens + tokens }))
-  await updateAgents($, list => list.map(a => (batch.has(a.id) ? { ...a, tokens: a.tokens + (batch.get(a.id) as StepTally).tokens } : a)))
+  for (;;) {
+    const change: (value: HeldCache) => HeldCache = c => ({
+      ...c,
+      lastHitAt: isHit ? now : c.lastHitAt,
+      readTokens: c.readTokens + cacheRead,
+      inputTokens: c.inputTokens + input,
+    })
+    const held = await $.state.get(CACHE)
+    const written = await $.state.set(CACHE, change(held.value ?? emptyCache()), { ifVersion: held.version })
+    if (written.isSet) break
+  }
+  for (;;) {
+    const change: (value: HeldRate) => HeldRate = r => ({ ...r, tokens: r.tokens + tokens })
+    const held = await $.state.get(RATE)
+    const written = await $.state.set(RATE, change(held.value ?? emptyRate()), { ifVersion: held.version })
+    if (written.isSet) break
+  }
+  for (;;) {
+    const change: (value: HeldAgents) => HeldAgents = list => list.map(a => (batch.has(a.id) ? { ...a, tokens: a.tokens + (batch.get(a.id) as StepTally).tokens } : a))
+    const held = await $.state.get(AGENTS)
+    const written = await $.state.set(AGENTS, change(held.value ?? []), { ifVersion: held.version })
+    if (written.isSet) break
+  }
   for (const [key, t] of batch) await attribute($, t.tokens, key === 'main' ? undefined : key)
 }
 
@@ -1399,13 +1364,23 @@ async function settleTurn($: EngineInterface, agentId: string | undefined, usage
     // What the step hook missed, by the turn's own model; a request when none was seen.
     statTokens(usage.model ?? lastStepModel, usage, seen === 0 ? 1 : 0, share)
     const now = nowMs()
-    await updateCache($, c => ({
-      ...c,
-      lastHitAt: seen === 0 && usage.cache_read_input_tokens > 0 ? now : c.lastHitAt,
-      readTokens: c.readTokens + Math.round(usage.cache_read_input_tokens * share),
-      inputTokens: c.inputTokens + Math.round((usage.input_tokens + usage.cache_creation_input_tokens) * share),
-    }))
-    await updateRate($, r => ({ ...r, tokens: r.tokens + extra }))
+    for (;;) {
+      const change: (value: HeldCache) => HeldCache = c => ({
+        ...c,
+        lastHitAt: seen === 0 && usage.cache_read_input_tokens > 0 ? now : c.lastHitAt,
+        readTokens: c.readTokens + Math.round(usage.cache_read_input_tokens * share),
+        inputTokens: c.inputTokens + Math.round((usage.input_tokens + usage.cache_creation_input_tokens) * share),
+      })
+      const held = await $.state.get(CACHE)
+      const written = await $.state.set(CACHE, change(held.value ?? emptyCache()), { ifVersion: held.version })
+      if (written.isSet) break
+    }
+    for (;;) {
+      const change: (value: HeldRate) => HeldRate = r => ({ ...r, tokens: r.tokens + extra })
+      const held = await $.state.get(RATE)
+      const written = await $.state.set(RATE, change(held.value ?? emptyRate()), { ifVersion: held.version })
+      if (written.isSet) break
+    }
   }
   if (agentId === undefined && sampledTokens === 0 && usage.output_tokens > 0 && durationMs > 0) {
     const n = Math.max(1, Math.min(RATE_WINDOW, Math.round(durationMs / RATE_MS)))
@@ -1417,7 +1392,12 @@ async function settleTurn($: EngineInterface, agentId: string | undefined, usage
   if (!sampledBy.has(key) && usage.output_tokens > 0 && durationMs > 0) {
     const n = Math.max(1, Math.min(RATE_WINDOW, Math.round(durationMs / RATE_MS)))
     const rate = usage.output_tokens / (durationMs / 1000)
-    await updateAgentRates($, rates => ({ ...rates, [key]: [...(rates[key] ?? []), ...Array.from({ length: n }, () => rate)].slice(-RATE_WINDOW) }))
+    for (;;) {
+      const change: (value: HeldAgentRates) => HeldAgentRates = rates => ({ ...rates, [key]: [...(rates[key] ?? []), ...Array.from({ length: n }, () => rate)].slice(-RATE_WINDOW) })
+      const held = await $.state.get(AGENT_RATES)
+      const written = await $.state.set(AGENT_RATES, change(held.value ?? {}), { ifVersion: held.version })
+      if (written.isSet) break
+    }
   }
   sampledBy.delete(key)
 
@@ -1492,7 +1472,7 @@ async function refreshContext($: EngineInterface, plain?: { tokens?: number; win
     perTurn: grew > 0 ? [...(prev?.perTurn ?? []), grew].slice(-24) : (prev?.perTurn ?? []),
     isEstimate: split.isEstimate,
   }
-  await updateContext($, () => view)
+  await $.state.set(CONTEXT, view)
 }
 
 type SpendBook = Record<string, { total: number; byModel: Record<string, number> }>
@@ -1532,7 +1512,7 @@ async function flushSpend($: EngineInterface) {
     byModel,
     daily: Array.from({ length: 14 }, (_, i) => book[dayKey(now - (13 - i) * 86_400_000)]?.total ?? 0),
   }
-  await updateSpend($, () => view)
+  await $.state.set(SPEND, view)
 }
 
 // ---------- agents the mod did not see spawn ----------
@@ -1569,7 +1549,7 @@ async function syncAgents($: EngineInterface) {
   const shape = (ns: readonly AgentNode[]) => ns.map(n => (String(n.id) + ':' + String(n.status)))
   if (merged.started.length === 0 && isSame(shape(nodes), shape(before))) return
   for (const id of merged.started) lastActivity.set(id, nowMs())
-  await updateAgents($, () => trimAgents(mergeAgentList(before, list, nowMs()).nodes))
+  await $.state.set(AGENTS, trimAgents(mergeAgentList(before, list, nowMs()).nodes))
   for (const id of merged.started) {
     const info = list.find(a => a.id === id)
     const title = info?.description || info?.type || 'agent'
@@ -1577,7 +1557,12 @@ async function syncAgents($: EngineInterface) {
     const spawn = pendingSpawns.find(p => p.description === info?.description && p.type === info?.type)
     if (spawn !== undefined) {
       pendingSpawns = pendingSpawns.filter(p => p !== spawn)
-      await updateAgents($, nodes => nodes.map(n => (n.id === id ? { ...n, model: n.model || spawn.model, isBackground: spawn.isBackground } : n)))
+      for (;;) {
+        const change: (value: HeldAgents) => HeldAgents = nodes => nodes.map(n => (n.id === id ? { ...n, model: n.model || spawn.model, isBackground: spawn.isBackground } : n))
+        const held = await $.state.get(AGENTS)
+        const written = await $.state.set(AGENTS, change(held.value ?? []), { ifVersion: held.version })
+        if (written.isSet) break
+      }
       await addTimeline($, 'task', ('Agent: ' + String(title)))
     }
     const tasksNowHeld = await $.state.get(TASKS)
@@ -1651,7 +1636,7 @@ async function flushStats($: EngineInterface) {
     days = pruneDays({ ...days, [day]: addDay(days[day] ?? emptyDay(), delta) })
     await $.store.set('stats', { days })
   }
-  await updateStats($, () => summarizeStats(days, now))
+  await $.state.set(STATS, summarizeStats(days, now))
 }
 
 
@@ -1685,7 +1670,14 @@ async function fillAgentModel($: EngineInterface, agentId: string, model: string
   // Read first: most steps find the model already set and write nothing.
   const listHeld = await $.state.get(AGENTS)
   const list = listHeld.value ?? []
-  if (list.some(a => a.id === agentId && a.model === '')) await updateAgents($, l => l.map(a => (a.id === agentId && a.model === '' ? { ...a, model } : a)))
+  if (list.some(a => a.id === agentId && a.model === '')) {
+    for (;;) {
+      const change: (value: HeldAgents) => HeldAgents = l => l.map(a => (a.id === agentId && a.model === '' ? { ...a, model } : a))
+      const held = await $.state.get(AGENTS)
+      const written = await $.state.set(AGENTS, change(held.value ?? []), { ifVersion: held.version })
+      if (written.isSet) break
+    }
+  }
 }
 
 /** What follows a main turn: close its steps, save a summary, tell the other sessions. */
@@ -1802,7 +1794,12 @@ async function runAtelierCommand($: EngineInterface, args: string, columns: numb
     return
   }
   if (verb === 'compact') {
-    await updateView($, v => ({ ...v, isCompact: !v.isCompact }))
+    for (;;) {
+      const change: (value: HeldView) => HeldView = v => ({ ...v, isCompact: !v.isCompact })
+      const held = await $.state.get(VIEW)
+      const written = await $.state.set(VIEW, change(held.value ?? emptyView()), { ifVersion: held.version })
+      if (written.isSet) break
+    }
     await open($, columns)
 
     return
@@ -1872,16 +1869,27 @@ export const register: Register = (on, options) => {
       })
     }
     const view = await $.state.get({ plugin: 'atelier', key: 'view' })
-    if (view.version === 0 && opt.isCompactDefault) await updateView($, v => ({ ...v, isCompact: true }))
+    if (view.version === 0 && opt.isCompactDefault) {
+      for (;;) {
+        const change: (value: HeldView) => HeldView = v => ({ ...v, isCompact: true })
+        const held = await $.state.get(VIEW)
+        const written = await $.state.set(VIEW, change(held.value ?? emptyView()), { ifVersion: held.version })
+        if (written.isSet) break
+      }
+    }
     const model = await $.session.model()
-    await updateAgents($, list =>
-      list.some(a => a.id === 'main')
-        ? list
-        : [{ id: 'main', type: 'main', model, description: 'Main agent', status: 'idle', tokens: 0, startedAt: nowMs(), isBackground: false } satisfies AgentNode, ...list],
-    )
+    for (;;) {
+      const change: (value: HeldAgents) => HeldAgents = list =>
+        list.some(a => a.id === 'main')
+          ? list
+          : [{ id: 'main', type: 'main', model, description: 'Main agent', status: 'idle', tokens: 0, startedAt: nowMs(), isBackground: false } satisfies AgentNode, ...list]
+      const held = await $.state.get(AGENTS)
+      const written = await $.state.set(AGENTS, change(held.value ?? []), { ifVersion: held.version })
+      if (written.isSet) break
+    }
     void quietly(open($))
     // The hand-off card is off until it has a better place; summaries are still saved.
-    await updateHandoff($, () => null)
+    await $.state.set(HANDOFF, null)
     void quietly(loadPeers($))
     peersTimer?.cancel()
     peersTimer = $.clock.every(20_000, () => {
@@ -1904,7 +1912,7 @@ export const register: Register = (on, options) => {
     if (!isPerson) return next(e)
     lastPhase = undefined
     void quietly(clearAttention($))
-    void quietly(updateDecisions($, list => (list.some(d => d.isPending) ? answerPending(list, e.text) : list)))
+    void quietly(answerFromPrompt($, e.text))
     noteForDecisions($, ('Person said: ' + String(e.text)))
     if (!looksTrivial(e.text)) {
       const id = rid('r')
@@ -1915,7 +1923,7 @@ export const register: Register = (on, options) => {
         ...list.map(t => (t.parentId === null && t.agentId === undefined && t.status === 'running' ? { ...t, status: 'pending' as const } : t)),
         newTask({ id, title, status: 'running', confidence: 0, order: now }, now),
       ])
-      await updateRoot($, () => id)
+      await $.state.set(ROOT, id)
       if (opt.isObserverOn) void quietly(seed($, e.text, id))
     }
     return next(e)
@@ -1925,7 +1933,12 @@ export const register: Register = (on, options) => {
     turnId = e.turnId
     isTurnRunning = true
     turnStartedAt = nowMs()
-    await updateAgents($, list => list.map(a => (a.id === 'main' ? { ...a, status: 'running' as const, startedAt: nowMs() } : a)))
+    for (;;) {
+      const change: (value: HeldAgents) => HeldAgents = list => list.map(a => (a.id === 'main' ? { ...a, status: 'running' as const, startedAt: nowMs() } : a))
+      const held = await $.state.get(AGENTS)
+      const written = await $.state.set(AGENTS, change(held.value ?? []), { ifVersion: held.version })
+      if (written.isSet) break
+    }
     startTicker($)
 
     return next(e)
@@ -1969,13 +1982,17 @@ export const register: Register = (on, options) => {
     const used = settled.get(e.agentId ?? 'main') ?? 0
     if (e.agentId !== undefined) {
       const agentId = e.agentId
-      await updateAgents($, list =>
-        list.map(a =>
-          a.id === agentId
-            ? { ...a, status: e.reason === 'error' ? ('error' as const) : ('done' as const), endedAt: nowMs(), tokens: a.tokens + used, currentTool: undefined }
-            : a,
-        ),
-      )
+      for (;;) {
+        const change: (value: HeldAgents) => HeldAgents = list =>
+          list.map(a =>
+            a.id === agentId
+              ? { ...a, status: e.reason === 'error' ? ('error' as const) : ('done' as const), endedAt: nowMs(), tokens: a.tokens + used, currentTool: undefined }
+              : a,
+          )
+        const held = await $.state.get(AGENTS)
+        const written = await $.state.set(AGENTS, change(held.value ?? []), { ifVersion: held.version })
+        if (written.isSet) break
+      }
       await attribute($, used, agentId)
       const isError = e.reason === 'error' || e.isAborted
       const agentsNowHeld = await $.state.get(AGENTS)
@@ -2002,9 +2019,13 @@ export const register: Register = (on, options) => {
     void quietly(flushStats($))
     void quietly(refreshContext($))
     void quietly(flushSpend($))
-    await updateAgents($, list =>
-      list.map(a => (a.id === 'main' ? { ...a, status: 'idle' as const, tokens: a.tokens + used, currentTool: undefined } : a)),
-    )
+    for (;;) {
+      const change: (value: HeldAgents) => HeldAgents = list =>
+        list.map(a => (a.id === 'main' ? { ...a, status: 'idle' as const, tokens: a.tokens + used, currentTool: undefined } : a))
+      const held = await $.state.get(AGENTS)
+      const written = await $.state.set(AGENTS, change(held.value ?? []), { ifVersion: held.version })
+      if (written.isSet) break
+    }
     setCurrent($, null, undefined, undefined)
     await publishLive($)
     await attribute($, used)
@@ -2033,7 +2054,7 @@ export const register: Register = (on, options) => {
       costUsd: e.cost?.usd,
       rateLimits: e.rateLimits.map(r => ({ kind: r.kind, percentUsed: r.percentUsed, resetsAt: r.resetsAt })),
     }
-    await updateUsage($, () => view)
+    await $.state.set(USAGE, view)
     // Between turns the heatmap follows the window from here too, and gets
     // its first reading here when turn.complete's refresh gave none; never
     // mid-turn, so "per turn" stays one reading a turn.
@@ -2224,8 +2245,8 @@ export const register: Register = (on, options) => {
           statsRange = RANGES[(RANGES.indexOf(statsRange) + 1) % RANGES.length] ?? 'today'
           $.ui.invalidate('ui.render')
         },
-        toggleCompact: () => quietly(updateView($, v => ({ ...v, isCompact: !v.isCompact }))),
-        toggleNote: () => quietly(updateView($, v => ({ ...v, isNoteOpen: !v.isNoteOpen }))),
+        toggleCompact: () => quietly(toggleCompact($)),
+        toggleNote: () => quietly(toggleNote($)),
         stop: () => quietly(interrupt($)),
         compact: () => quietly(compactNow($)),
         tests: () => quietly(runTests($)),
@@ -2235,8 +2256,8 @@ export const register: Register = (on, options) => {
         revert: id => quietly(revertDecision($, id)),
         openDiff: path => quietly(openDiff($, path)),
         useHandoff: () => (handoff === null ? undefined : quietly($.prompt.fill({ text: handoffText(handoff) }))),
-        dismissHandoff: () => quietly(updateHandoff($, () => null)),
-        closeSearch: () => quietly(updateSearch($, () => null)),
+        dismissHandoff: () => quietly(dismissHandoff($)),
+        closeSearch: () => quietly(closeSearch($)),
       },
     )
   })

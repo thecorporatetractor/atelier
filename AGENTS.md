@@ -65,7 +65,19 @@ The directory reads the name `$` as the capability object everywhere in a file t
 - `$`, `e` and `next` are the hook's parameters and nothing else, file-wide: no variable, parameter, destructured name or callback argument elsewhere in `register.tsx` may be called `e` or `next` (findings `MOD_PERMISSION_ANSWER_UNREAD`, `MOD_ANSWERS_PERMISSION`). Helpers name their value after what it is (`eased`, `applied`, `saved`).
 - In every `.tsx` file, `h` and `Fragment` are JSX's own: never a variable, parameter or callback argument (`hits.map(hit => ...)`, not `map(h => ...)`).
 
-- Spell every call `$.noun.method(...)`. Pass `$` only as one whole argument to a function declared at the top level of `register.tsx`, and nowhere else: not even to `read`, `update` or `atom` from `claude-code`. State is read with `$.state.get(REF)` where it is needed and written through the `updateX($, change)` helpers, all with literal references.
+- Spell every call `$.noun.method(...)`. Pass `$` only as one whole argument to a function declared at the top level of `register.tsx`, and nowhere else: not even to `read`, `update` or `atom` from `claude-code`. State is read with `$.state.get(REF)` and written with `$.state.set(REF, ...)` in the function where the value is worked out, always with a literal reference. No generic write helper given `$` and a callback (`updateTasks($, list => ...)`): the directory flags every call to one. A write that depends on the old value is a version-checked loop written in place:
+
+  ```ts
+  for (;;) {
+    const change: (value: HeldTasks) => HeldTasks = list => [...list, task]
+    const held = await $.state.get(TASKS)
+    const written = await $.state.set(TASKS, change(held.value ?? []), { ifVersion: held.version })
+    if (written.isSet) break
+  }
+  ```
+
+  A write that ignores the old value is a plain `await $.state.set(REF, value)`. A sidebar button that writes state calls its own top-level function (`toggleCompact($)`), never a write written inside the closure.
+- No function in `register.tsx` that nothing calls. `claude plugin validate` cannot follow a `$.state` call in one ("the const HANDOFF … is also written through, handed on or exported here"). Delete dead code; don't leave it for later.
 - Read the project folder from the event (`session.start`'s `e.cwd`), not from the machine.
 - Programs: `$.process.run` with the program's name and fixed arguments written in the call, e.g. `$.process.run(['git', 'add', '-A'], init)`. Never a shell, never an argument built from a setting, the model or a file. A choice the person makes selects one of a fixed set of such calls (see `runTestCommand`).
 - The only way out of the machine is `$.model.complete` / `$.model.classify`. No `$.http`, `$.mcp` or `$.session.send` unless the README says exactly what goes where.
