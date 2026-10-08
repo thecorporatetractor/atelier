@@ -490,7 +490,7 @@ let publishTimer: Timer | undefined
 // Last tool call or step per subagent: one listed as running but silent for
 // STALE_MS no longer keeps the redraw timer alive.
 const lastActivity = new Map<string, number>()
-const STALE_MS = 10 * 60_000
+const STALE_MS = 30_000
 // What happened since the last decisions pass; it runs after DECIDE_MS of quiet.
 const DECIDE_MS = 5_000
 let decideLines: string[] = []
@@ -1247,7 +1247,8 @@ async function sampleTick($: EngineInterface) {
   const rate = chars / 4 / (RATE_MS / 1000)
   if (rate > 0) sampledTokens += 1
   idleSamples = streamCount > 0 || rate > 0 ? 0 : idleSamples + 1
-  if (idleSamples >= RATE_WINDOW && sampler !== undefined) {
+  // Two quiet ticks and the sampler stops; the next step starts it again.
+  if (idleSamples >= 2 && sampler !== undefined) {
     sampler.cancel()
     sampler = undefined
   }
@@ -1438,12 +1439,13 @@ type SpendBook = Record<string, { total: number; byModel: Record<string, number>
 
 /** Cost deltas, charged to the model of the latest response, kept per day. */
 async function flushSpend($: EngineInterface) {
+  const now = await $.clock.now()
   const entries = Object.entries(pendingSpend)
   pendingSpend = {}
   const raw = await $.store.get('spend')
   const book: SpendBook = raw !== null && typeof raw === 'object' ? (raw as SpendBook) : {}
   if (entries.length > 0) {
-    const day = dayKey(nowMs())
+    const day = dayKey(now)
     const was = book[day] ?? { total: 0, byModel: {} }
     for (const [model, v] of entries) {
       was.total += v
@@ -1454,7 +1456,6 @@ async function flushSpend($: EngineInterface) {
     for (const k of Object.keys(book)) if (!keep.includes(k)) delete book[k]
     await $.store.set('spend', book)
   }
-  const now = nowMs()
   const sumSince = (days: number) =>
     Object.entries(book)
       .filter(([k]) => k >= dayKey(now - (days - 1) * 86_400_000))
@@ -1477,6 +1478,8 @@ async function flushSpend($: EngineInterface) {
 // ---------- agents the mod did not see spawn ----------
 
 let lastSyncAt = 0
+let syncIdleTicks = 0
+let hasRunningAgents = false
 // Spawns seen in agent.spawn, matched to the agent list by description and type.
 type PendingSpawn = { description: string; type: string; prompt: string; model: string; isBackground: boolean; at: number }
 let pendingSpawns: PendingSpawn[] = []
@@ -1501,6 +1504,7 @@ async function syncAgents($: EngineInterface) {
   const before = await readAgents($)
   const merged = mergeAgentList(before, list, nowMs())
   const nodes = trimAgents(merged.nodes)
+  hasRunningAgents = nodes.some(n => n.id !== 'main' && n.status === 'running')
   const shape = (ns: readonly AgentNode[]) => ns.map(n => `${n.id}:${n.status}`)
   if (merged.started.length === 0 && isSame(shape(nodes), shape(before))) return
   for (const id of merged.started) lastActivity.set(id, nowMs())
@@ -1570,12 +1574,14 @@ async function flushStats($: EngineInterface) {
   const raw = (await $.store.get('stats')) as { days?: Record<string, DayStats> } | undefined
   let days = raw !== undefined && typeof raw === 'object' && raw.days !== undefined ? raw.days : undefined
   if (days === undefined) days = await seedStatsFromSpend($)
+  // Days follow Claude Code's clock, not the system's.
+  const now = await $.clock.now()
   if (!isEmptyDay(delta)) {
-    const day = dayKey(nowMs())
+    const day = dayKey(now)
     days = pruneDays({ ...days, [day]: addDay(days[day] ?? emptyDay(), delta) })
     await $.store.set('stats', { days })
   }
-  await updateStats($, () => summarizeStats(days, nowMs()))
+  await updateStats($, () => summarizeStats(days, now))
 }
 
 /** The first stats write carries over the spend book kept before stats existed. */
@@ -1782,7 +1788,9 @@ export const register: Register = (on, options) => {
     void syncAgents($).catch(() => {})
     syncTimer?.cancel()
     syncTimer = $.clock.every(5_000, () => {
-      void syncAgents($).catch(() => {})
+      // Every 5s while work runs; once a minute when the session is idle.
+      syncIdleTicks = isTurnRunning || hasRunningAgents ? 0 : syncIdleTicks + 1
+      if (syncIdleTicks % 12 === 0) void syncAgents($).catch(() => {})
     })
 
     return next(e)
