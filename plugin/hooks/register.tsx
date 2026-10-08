@@ -103,13 +103,37 @@ const SPEND_DAYS = 62
 // The sidebar's state: each value read and written through $.state with
 // its literal reference, the way the directory's review reads the code.
 type Held = PluginState['atelier']
+// One name per value, so no signature below needs an indexed type.
+type TimelineKind = TimelineEntry['kind']
+type HeldAgentRates = Held['agentRates']
+type HeldAgents = Held['agents']
+type HeldAlerts = Held['alerts']
+type HeldCache = Held['cache']
+type HeldConfidence = Held['confidence']
+type HeldContext = Held['context']
+type HeldCurrent = Held['current']
+type HeldDecisions = Held['decisions']
+type HeldFeed = Held['feed']
+type HeldFiles = Held['files']
+type HeldHandoff = Held['handoff']
+type HeldObserver = Held['observer']
+type HeldPeers = Held['peers']
+type HeldRate = Held['rate']
+type HeldRootId = Held['rootId']
+type HeldSearch = Held['search']
+type HeldSpend = Held['spend']
+type HeldStats = Held['stats']
+type HeldTasks = Held['tasks']
+type HeldTimeline = Held['timeline']
+type HeldUsage = Held['usage']
+type HeldView = Held['view']
 
 // What each value reads as before it is first written.
-function emptyAlerts(): Held['alerts'] {
+function emptyAlerts(): HeldAlerts {
   return { attention: null, spins: [], drift: null }
 }
 
-function emptyView(): Held['view'] {
+function emptyView(): HeldView {
   return {
   isCompact: false,
   isNoteOpen: false,
@@ -118,7 +142,7 @@ function emptyView(): Held['view'] {
 }
 }
 
-function emptyObserver(): Held['observer'] {
+function emptyObserver(): HeldObserver {
   return {
   calls: 0,
   inputTokens: 0,
@@ -128,7 +152,7 @@ function emptyObserver(): Held['observer'] {
 }
 }
 
-function emptyConfidence(): Held['confidence'] {
+function emptyConfidence(): HeldConfidence {
   return {
   untestedEdits: 0,
   testsPassed: null,
@@ -136,18 +160,18 @@ function emptyConfidence(): Held['confidence'] {
 }
 }
 
-function emptyRate(): Held['rate'] {
+function emptyRate(): HeldRate {
   return { samples: [], peak: 0, sum: 0, count: 0, tokens: 0 }
 }
 
-function emptyCache(): Held['cache'] {
+function emptyCache(): HeldCache {
   return { lastHitAt: null, ttlMs: CACHE_TTL_MS, readTokens: 0, inputTokens: 0 }
 }
 
 const TASKS = { plugin: 'atelier', key: 'tasks' } as const
 
 
-async function updateTasks($: EngineInterface, change: (value: Held['tasks']) => Held['tasks']): Promise<void> {
+async function updateTasks($: EngineInterface, change: (value: HeldTasks) => HeldTasks): Promise<void> {
   for (;;) {
     const held = await $.state.get(TASKS)
     const value = change(held.value ?? [])
@@ -159,7 +183,7 @@ async function updateTasks($: EngineInterface, change: (value: Held['tasks']) =>
 const ROOT = { plugin: 'atelier', key: 'rootId' } as const
 
 
-async function updateRoot($: EngineInterface, change: (value: Held['rootId']) => Held['rootId']): Promise<void> {
+async function updateRoot($: EngineInterface, change: (value: HeldRootId) => HeldRootId): Promise<void> {
   for (;;) {
     const held = await $.state.get(ROOT)
     const value = change(held.value ?? null)
@@ -171,7 +195,7 @@ async function updateRoot($: EngineInterface, change: (value: Held['rootId']) =>
 const AGENTS = { plugin: 'atelier', key: 'agents' } as const
 
 
-async function updateAgents($: EngineInterface, change: (value: Held['agents']) => Held['agents']): Promise<void> {
+async function updateAgents($: EngineInterface, change: (value: HeldAgents) => HeldAgents): Promise<void> {
   for (;;) {
     const held = await $.state.get(AGENTS)
     const value = change(held.value ?? [])
@@ -183,7 +207,7 @@ async function updateAgents($: EngineInterface, change: (value: Held['agents']) 
 const USAGE = { plugin: 'atelier', key: 'usage' } as const
 
 
-async function updateUsage($: EngineInterface, change: (value: Held['usage']) => Held['usage']): Promise<void> {
+async function updateUsage($: EngineInterface, change: (value: HeldUsage) => HeldUsage): Promise<void> {
   for (;;) {
     const held = await $.state.get(USAGE)
     const value = change(held.value ?? null)
@@ -195,7 +219,7 @@ async function updateUsage($: EngineInterface, change: (value: Held['usage']) =>
 const FEED = { plugin: 'atelier', key: 'feed' } as const
 
 
-async function updateFeed($: EngineInterface, change: (value: Held['feed']) => Held['feed']): Promise<void> {
+async function updateFeed($: EngineInterface, change: (value: HeldFeed) => HeldFeed): Promise<void> {
   for (;;) {
     const held = await $.state.get(FEED)
     const value = change(held.value ?? [])
@@ -207,7 +231,7 @@ async function updateFeed($: EngineInterface, change: (value: Held['feed']) => H
 const CURRENT = { plugin: 'atelier', key: 'current' } as const
 
 
-async function updateCurrent($: EngineInterface, change: (value: Held['current']) => Held['current']): Promise<void> {
+async function updateCurrent($: EngineInterface, change: (value: HeldCurrent) => HeldCurrent): Promise<void> {
   for (;;) {
     const held = await $.state.get(CURRENT)
     const value = change(held.value ?? null)
@@ -219,7 +243,7 @@ async function updateCurrent($: EngineInterface, change: (value: Held['current']
 const FILES = { plugin: 'atelier', key: 'files' } as const
 
 
-async function updateFiles($: EngineInterface, change: (value: Held['files']) => Held['files']): Promise<void> {
+async function updateFiles($: EngineInterface, change: (value: HeldFiles) => HeldFiles): Promise<void> {
   for (;;) {
     const held = await $.state.get(FILES)
     const value = change(held.value ?? [])
@@ -231,7 +255,7 @@ async function updateFiles($: EngineInterface, change: (value: Held['files']) =>
 const ALERTS = { plugin: 'atelier', key: 'alerts' } as const
 
 
-async function updateAlerts($: EngineInterface, change: (value: Held['alerts']) => Held['alerts']): Promise<void> {
+async function updateAlerts($: EngineInterface, change: (value: HeldAlerts) => HeldAlerts): Promise<void> {
   for (;;) {
     const held = await $.state.get(ALERTS)
     const value = change(held.value ?? { attention: null, spins: [], drift: null })
@@ -243,7 +267,7 @@ async function updateAlerts($: EngineInterface, change: (value: Held['alerts']) 
 const VIEW = { plugin: 'atelier', key: 'view' } as const
 
 
-async function updateView($: EngineInterface, change: (value: Held['view']) => Held['view']): Promise<void> {
+async function updateView($: EngineInterface, change: (value: HeldView) => HeldView): Promise<void> {
   for (;;) {
     const held = await $.state.get(VIEW)
     const value = change(held.value ?? {
@@ -260,7 +284,7 @@ async function updateView($: EngineInterface, change: (value: Held['view']) => H
 const OBSERVER = { plugin: 'atelier', key: 'observer' } as const
 
 
-async function updateObserver($: EngineInterface, change: (value: Held['observer']) => Held['observer']): Promise<void> {
+async function updateObserver($: EngineInterface, change: (value: HeldObserver) => HeldObserver): Promise<void> {
   for (;;) {
     const held = await $.state.get(OBSERVER)
     const value = change(held.value ?? {
@@ -278,7 +302,7 @@ async function updateObserver($: EngineInterface, change: (value: Held['observer
 const TIMELINE = { plugin: 'atelier', key: 'timeline' } as const
 
 
-async function updateTimeline($: EngineInterface, change: (value: Held['timeline']) => Held['timeline']): Promise<void> {
+async function updateTimeline($: EngineInterface, change: (value: HeldTimeline) => HeldTimeline): Promise<void> {
   for (;;) {
     const held = await $.state.get(TIMELINE)
     const value = change(held.value ?? [])
@@ -290,7 +314,7 @@ async function updateTimeline($: EngineInterface, change: (value: Held['timeline
 const CONFIDENCE = { plugin: 'atelier', key: 'confidence' } as const
 
 
-async function updateConfidence($: EngineInterface, change: (value: Held['confidence']) => Held['confidence']): Promise<void> {
+async function updateConfidence($: EngineInterface, change: (value: HeldConfidence) => HeldConfidence): Promise<void> {
   for (;;) {
     const held = await $.state.get(CONFIDENCE)
     const value = change(held.value ?? {
@@ -306,7 +330,7 @@ async function updateConfidence($: EngineInterface, change: (value: Held['confid
 const PEERS = { plugin: 'atelier', key: 'peers' } as const
 
 
-async function updatePeers($: EngineInterface, change: (value: Held['peers']) => Held['peers']): Promise<void> {
+async function updatePeers($: EngineInterface, change: (value: HeldPeers) => HeldPeers): Promise<void> {
   for (;;) {
     const held = await $.state.get(PEERS)
     const value = change(held.value ?? [])
@@ -318,7 +342,7 @@ async function updatePeers($: EngineInterface, change: (value: Held['peers']) =>
 const HANDOFF = { plugin: 'atelier', key: 'handoff' } as const
 
 
-async function updateHandoff($: EngineInterface, change: (value: Held['handoff']) => Held['handoff']): Promise<void> {
+async function updateHandoff($: EngineInterface, change: (value: HeldHandoff) => HeldHandoff): Promise<void> {
   for (;;) {
     const held = await $.state.get(HANDOFF)
     const value = change(held.value ?? null)
@@ -330,7 +354,7 @@ async function updateHandoff($: EngineInterface, change: (value: Held['handoff']
 const SEARCH = { plugin: 'atelier', key: 'search' } as const
 
 
-async function updateSearch($: EngineInterface, change: (value: Held['search']) => Held['search']): Promise<void> {
+async function updateSearch($: EngineInterface, change: (value: HeldSearch) => HeldSearch): Promise<void> {
   for (;;) {
     const held = await $.state.get(SEARCH)
     const value = change(held.value ?? null)
@@ -342,7 +366,7 @@ async function updateSearch($: EngineInterface, change: (value: Held['search']) 
 const DECISIONS = { plugin: 'atelier', key: 'decisions' } as const
 
 
-async function updateDecisions($: EngineInterface, change: (value: Held['decisions']) => Held['decisions']): Promise<void> {
+async function updateDecisions($: EngineInterface, change: (value: HeldDecisions) => HeldDecisions): Promise<void> {
   for (;;) {
     const held = await $.state.get(DECISIONS)
     const value = change(held.value ?? [])
@@ -354,7 +378,7 @@ async function updateDecisions($: EngineInterface, change: (value: Held['decisio
 const RATE = { plugin: 'atelier', key: 'rate' } as const
 
 
-async function updateRate($: EngineInterface, change: (value: Held['rate']) => Held['rate']): Promise<void> {
+async function updateRate($: EngineInterface, change: (value: HeldRate) => HeldRate): Promise<void> {
   for (;;) {
     const held = await $.state.get(RATE)
     const value = change(held.value ?? { samples: [], peak: 0, sum: 0, count: 0, tokens: 0 })
@@ -366,7 +390,7 @@ async function updateRate($: EngineInterface, change: (value: Held['rate']) => H
 const CACHE = { plugin: 'atelier', key: 'cache' } as const
 
 
-async function updateCache($: EngineInterface, change: (value: Held['cache']) => Held['cache']): Promise<void> {
+async function updateCache($: EngineInterface, change: (value: HeldCache) => HeldCache): Promise<void> {
   for (;;) {
     const held = await $.state.get(CACHE)
     const value = change(held.value ?? { lastHitAt: null, ttlMs: CACHE_TTL_MS, readTokens: 0, inputTokens: 0 })
@@ -378,7 +402,7 @@ async function updateCache($: EngineInterface, change: (value: Held['cache']) =>
 const CONTEXT = { plugin: 'atelier', key: 'context' } as const
 
 
-async function updateContext($: EngineInterface, change: (value: Held['context']) => Held['context']): Promise<void> {
+async function updateContext($: EngineInterface, change: (value: HeldContext) => HeldContext): Promise<void> {
   for (;;) {
     const held = await $.state.get(CONTEXT)
     const value = change(held.value ?? null)
@@ -390,7 +414,7 @@ async function updateContext($: EngineInterface, change: (value: Held['context']
 const SPEND = { plugin: 'atelier', key: 'spend' } as const
 
 
-async function updateSpend($: EngineInterface, change: (value: Held['spend']) => Held['spend']): Promise<void> {
+async function updateSpend($: EngineInterface, change: (value: HeldSpend) => HeldSpend): Promise<void> {
   for (;;) {
     const held = await $.state.get(SPEND)
     const value = change(held.value ?? null)
@@ -402,7 +426,7 @@ async function updateSpend($: EngineInterface, change: (value: Held['spend']) =>
 const STATS = { plugin: 'atelier', key: 'stats' } as const
 
 
-async function updateStats($: EngineInterface, change: (value: Held['stats']) => Held['stats']): Promise<void> {
+async function updateStats($: EngineInterface, change: (value: HeldStats) => HeldStats): Promise<void> {
   for (;;) {
     const held = await $.state.get(STATS)
     const value = change(held.value ?? null)
@@ -414,7 +438,7 @@ async function updateStats($: EngineInterface, change: (value: Held['stats']) =>
 const AGENT_RATES = { plugin: 'atelier', key: 'agentRates' } as const
 
 
-async function updateAgentRates($: EngineInterface, change: (value: Held['agentRates']) => Held['agentRates']): Promise<void> {
+async function updateAgentRates($: EngineInterface, change: (value: HeldAgentRates) => HeldAgentRates): Promise<void> {
   for (;;) {
     const held = await $.state.get(AGENT_RATES)
     const value = change(held.value ?? {})
@@ -567,7 +591,7 @@ async function publishLive($: EngineInterface) {
   }
 }
 
-async function addTimeline($: EngineInterface, kind: TimelineEntry['kind'], text: string, feedId?: string) {
+async function addTimeline($: EngineInterface, kind: TimelineKind, text: string, feedId?: string) {
   const entry: TimelineEntry = { id: rid('t'), at: nowMs(), kind, text, feedId }
   await updateTimeline($, list => [...list, entry].slice(-TIMELINE_MAX))
 }
