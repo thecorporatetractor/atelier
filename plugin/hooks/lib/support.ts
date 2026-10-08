@@ -2,7 +2,7 @@
 // small helpers the hooks use. No `$` here.
 import type { ModelUsage, PluginOptions } from 'claude-code'
 
-import type { Summary, Task, TaskStatus } from '../../types'
+import type { SpendView, Summary, Task, TaskStatus } from '../../types'
 import { agentTaskOf, PHASES } from './model'
 
 export type Options = {
@@ -96,4 +96,50 @@ export function burned(u: ModelUsage) {
 
 export function dayKey(ms: number) {
   return new Date(ms).toISOString().slice(0, 10)
+}
+
+/** Cost per day, total and by model, as the store keeps it under 'spend'. */
+export type SpendBook = Record<string, { total: number; byModel: Record<string, number> }>
+
+export function asSpendBook(raw: unknown): SpendBook {
+  return raw !== null && typeof raw === 'object' ? (raw as SpendBook) : {}
+}
+
+/** The book with today's cost deltas added, keeping the latest `keepDays` days. */
+export function addSpend(book: SpendBook, entries: [string, number][], day: string, keepDays: number): SpendBook {
+  const was = book[day] ?? { total: 0, byModel: {} }
+  const today = { total: was.total, byModel: { ...was.byModel } }
+  for (const [model, cost] of entries) {
+    today.total += cost
+    today.byModel[model] = (today.byModel[model] ?? 0) + cost
+  }
+  const all: SpendBook = { ...book, [day]: today }
+  const keep = Object.keys(all).sort().slice(-keepDays)
+
+  const kept: SpendBook = {}
+  for (const k of keep) kept[k] = all[k] ?? { total: 0, byModel: {} }
+
+  return kept
+}
+
+/** Today, the last 7 and 30 days, the 30 days by model and 14 daily totals. */
+export function spendView(book: SpendBook, now: number): SpendView {
+  const totalOn = (ms: number) => book[dayKey(ms)]?.total ?? 0
+  const sumSince = (days: number) =>
+    Object.entries(book)
+      .filter(([k]) => k >= dayKey(now - (days - 1) * 86_400_000))
+      .reduce((sum, [, v]) => sum + v.total, 0)
+  const byModel: Record<string, number> = {}
+  for (const [k, v] of Object.entries(book)) {
+    if (k < dayKey(now - 29 * 86_400_000)) continue
+    for (const [m, x] of Object.entries(v.byModel)) byModel[m] = (byModel[m] ?? 0) + x
+  }
+
+  return {
+    today: totalOn(now),
+    week: sumSince(7),
+    month: sumSince(30),
+    byModel,
+    daily: Array.from({ length: 14 }, (_, i) => totalOn(now - (13 - i) * 86_400_000)),
+  }
 }

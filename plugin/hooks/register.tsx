@@ -69,10 +69,13 @@ import {
   OBSERVER_SYSTEM,
   type Options,
   readOptions,
+  spendView,
   SEED_SYSTEM,
   SUMMARY_SYSTEM,
   type TestCommand,
   burned,
+  addSpend,
+  asSpendBook,
   dayKey,
   decisionBrief,
   declaredParent,
@@ -1475,44 +1478,21 @@ async function refreshContext($: EngineInterface, plain?: { tokens?: number; win
   await $.state.set(CONTEXT, view)
 }
 
-type SpendBook = Record<string, { total: number; byModel: Record<string, number> }>
-
 /** Cost deltas, charged to the model of the latest response, kept per day. */
 async function flushSpend($: EngineInterface) {
   const now = await $.clock.now()
   const entries = Object.entries(pendingSpend)
   pendingSpend = {}
   const raw = await $.store.get('spend')
-  const book: SpendBook = raw !== null && typeof raw === 'object' ? (raw as SpendBook) : {}
+  const book = asSpendBook(raw)
   if (entries.length > 0) {
-    const day = dayKey(now)
-    const was = book[day] ?? { total: 0, byModel: {} }
-    for (const [model, v] of entries) {
-      was.total += v
-      was.byModel[model] = (was.byModel[model] ?? 0) + v
-    }
-    book[day] = was
-    const keep = Object.keys(book).sort().slice(-SPEND_DAYS)
-    for (const k of Object.keys(book)) if (!keep.includes(k)) delete book[k]
-    await $.store.set('spend', book)
+    const added = addSpend(book, entries, dayKey(now), SPEND_DAYS)
+    await $.store.set('spend', added)
+    await $.state.set(SPEND, spendView(added, now))
+
+    return
   }
-  const sumSince = (days: number) =>
-    Object.entries(book)
-      .filter(([k]) => k >= dayKey(now - (days - 1) * 86_400_000))
-      .reduce((n, [, v]) => n + v.total, 0)
-  const byModel: Record<string, number> = {}
-  for (const [k, v] of Object.entries(book)) {
-    if (k < dayKey(now - 29 * 86_400_000)) continue
-    for (const [m, x] of Object.entries(v.byModel)) byModel[m] = (byModel[m] ?? 0) + x
-  }
-  const view: SpendView = {
-    today: book[dayKey(now)]?.total ?? 0,
-    week: sumSince(7),
-    month: sumSince(30),
-    byModel,
-    daily: Array.from({ length: 14 }, (_, i) => book[dayKey(now - (13 - i) * 86_400_000)]?.total ?? 0),
-  }
-  await $.state.set(SPEND, view)
+  await $.state.set(SPEND, spendView(book, now))
 }
 
 // ---------- agents the mod did not see spawn ----------
@@ -1832,7 +1812,7 @@ async function runAtelierCommand($: EngineInterface, args: string, columns: numb
 
 /** The spend book kept before stats existed, as stats days. */
 function daysFromSpend(raw: unknown): Record<string, DayStats> {
-  const book = raw !== null && typeof raw === 'object' ? (raw as SpendBook) : {}
+  const book = asSpendBook(raw)
   const days: Record<string, DayStats> = {}
   for (const [k, v] of Object.entries(book)) {
     const d = emptyDay()
