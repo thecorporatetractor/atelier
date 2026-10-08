@@ -130,11 +130,13 @@ Every call's tokens are counted in the Agents section and on the stats screen.
 | Your test runner: `npm test`, `pnpm test`, `yarn test`, `bun test`, `make test`, `pytest`, `cargo test` or `go test ./...`, the one picked in `/config` | Only when you press `t`, in the project folder. It is started by name with those fixed arguments, never through a shell |
 | `git add -A`, then `git commit -m "checkpoint (atelier)"` | Only when you press `k` and confirm the question, in the project folder |
 
-It also runs one Claude Code command: `/diff`, when you press a file in the Files section.
+Each program runs in the project folder Claude Code reported when the session started (`session.start`'s `cwd`); that folder is the only part of the call not written as fixed text. No program gets anything from the session: not your prompts, not the conversation, not the session id or usage figures. Their output is only shown in the sidebar (pass or fail, and the first 80 characters of an error).
+
+It also runs one Claude Code command: `/diff`, with no arguments, only when you press a file in the Files section, to show you the changes. It runs no other command.
 
 ### What it puts in Claude's prompts
 
-atelier submits a prompt only when you press a button for it:
+atelier submits a prompt only when you press a button for it, and the prompt holds only the text below. It never puts the session id, usage figures, the project folder or anything else it reads about the session into a prompt:
 
 | You press | Claude receives |
 | --- | --- |
@@ -152,8 +154,8 @@ None of atelier's hooks change or answer what they see: each one notes the event
 | `turn.step` | The tokens each model response used (the response itself streams through untouched) |
 | `agent.spawn` | That a subagent started, to give it a row and a task |
 | `turn.start`, `turn.complete`, `session.measure`, `PostCompact` | Turn timing, usage, cost, context and compactions, for the sidebar and the stats screen |
-| `prompt.submit` | That you sent a prompt, to start a task for it |
-| `PermissionRequest`, `Notification` | That Claude is waiting on you, to show a banner and a toast; they decide nothing |
+| `prompt.submit` | That you sent a prompt, to start a task for it. Its text goes only to the observer call listed under "What it sends", never to a program or a command |
+| `PermissionRequest`, `Notification` | That Claude is waiting on you, to show a banner and a toast. The `PermissionRequest` hook decides nothing: it never allows, denies or asks, and passes the request on unchanged, so the choice stays yours |
 | `session.start`, `session.end` | Setting up the sidebar, and saving the day's figures |
 | `ui.render` | Drawing the sidebar |
 | `command.run` | Answering atelier's own `/atelier` command, and no other |
