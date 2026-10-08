@@ -1,7 +1,7 @@
+export type ProbeCount = number
+
 declare module 'claude-code' {
   interface PluginState {
-    atelier: { count: number; names: string[] }
+    atelier: { count: ProbeCount }
   }
 }
-
-export {}
