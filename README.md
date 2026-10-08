@@ -130,7 +130,7 @@ Every call's tokens are counted in the Agents section and on the stats screen.
 | Your test runner: `npm test`, `pnpm test`, `yarn test`, `bun test`, `make test`, `pytest`, `cargo test` or `go test ./...`, the one picked in `/config` | Only when you press `t`, in the project folder. It is started by name with those fixed arguments, never through a shell |
 | `git add -A`, then `git commit -m "checkpoint (atelier)"` | Only when you press `k` and confirm the question, in the project folder |
 
-Each program runs in the project folder Claude Code reported when the session started (`session.start`'s `cwd`); that folder is the only part of the call not written as fixed text. No program gets anything from the session: not your prompts, not the conversation, not the session id or usage figures. Their output is only shown in the sidebar (pass or fail, and the first 80 characters of an error).
+Each call is written out in full as fixed text: the program, its arguments and the time limit. It runs in the session's own folder, which is where Claude Code runs programs by default. No program gets anything from the session: not your prompts, not the conversation, not the session id or usage figures. Their output is only shown in the sidebar (pass or fail, and the first 80 characters of an error).
 
 It also runs one Claude Code command: `/diff`, with no arguments, only when you press a file in the Files section, to show you the changes. It runs no other command.
 

@@ -968,33 +968,33 @@ async function compactNow($: EngineInterface) {
 async function runTests($: EngineInterface) {
   const id = rid('f')
   await pushFeed($, { id, at: nowMs(), text: ('Running ' + String(opt.testCommand)), tool: 'atelier', state: 'running' })
-  const init = { cwd: root || undefined, timeoutMs: 600_000 }
-  // One of a fixed set of runners, each started by name with fixed arguments.
+  // One of a fixed set of runners, each started by name with fixed arguments,
+  // in the session's folder (process.run's default).
   let r: ProcessRunResult
   switch (opt.testCommand) {
     case 'pnpm test':
-      r = await $.process.run(['pnpm', 'test'], init)
+      r = await $.process.run(['pnpm', 'test'], { timeoutMs: 600_000 })
       break
     case 'yarn test':
-      r = await $.process.run(['yarn', 'test'], init)
+      r = await $.process.run(['yarn', 'test'], { timeoutMs: 600_000 })
       break
     case 'bun test':
-      r = await $.process.run(['bun', 'test'], init)
+      r = await $.process.run(['bun', 'test'], { timeoutMs: 600_000 })
       break
     case 'make test':
-      r = await $.process.run(['make', 'test'], init)
+      r = await $.process.run(['make', 'test'], { timeoutMs: 600_000 })
       break
     case 'pytest':
-      r = await $.process.run(['pytest'], init)
+      r = await $.process.run(['pytest'], { timeoutMs: 600_000 })
       break
     case 'cargo test':
-      r = await $.process.run(['cargo', 'test'], init)
+      r = await $.process.run(['cargo', 'test'], { timeoutMs: 600_000 })
       break
     case 'go test':
-      r = await $.process.run(['go', 'test', './...'], init)
+      r = await $.process.run(['go', 'test', './...'], { timeoutMs: 600_000 })
       break
     default:
-      r = await $.process.run(['npm', 'test'], init)
+      r = await $.process.run(['npm', 'test'], { timeoutMs: 600_000 })
   }
   const isOk = r.exitCode === 0
   await editFeed($, list => list.map(f => (f.id === id ? { ...f, state: isOk ? ('ok' as const) : ('error' as const), text: ('Tests ' + String(isOk ? 'passed' : ('failed (' + String(r.exitCode) + ')'))) } : f)))
@@ -1006,8 +1006,8 @@ async function runTests($: EngineInterface) {
 async function commitCheckpoint($: EngineInterface) {
   const answer = await $.ui.ask('Stage every change (git add -A) and commit a checkpoint?', ['Commit', 'Cancel'])
   if (answer !== 'Commit') return
-  const add = await $.process.run(['git', 'add', '-A'], { cwd: root || undefined })
-  const r = add.exitCode === 0 ? await $.process.run(['git', 'commit', '-m', 'checkpoint (atelier)'], { cwd: root || undefined }) : add
+  const add = await $.process.run(['git', 'add', '-A'])
+  const r = add.exitCode === 0 ? await $.process.run(['git', 'commit', '-m', 'checkpoint (atelier)']) : add
   $.ui.toast(r.exitCode === 0 ? 'Atelier: checkpoint committed' : ('Atelier: commit failed: ' + String((r.stderr || r.stdout).slice(0, 80))))
 }
 
