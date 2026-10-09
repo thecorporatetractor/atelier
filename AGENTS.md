@@ -1,6 +1,6 @@
-# Working on atelier
+# Working on studiolo
 
-atelier is a Claude Code mod: a plugin of function hooks, today a docked sidebar, growing into a workspace. These are the conventions for anyone changing it, people and coding agents alike.
+studiolo is a Claude Code mod: a plugin of function hooks, today a docked sidebar, growing into a workspace. These are the conventions for anyone changing it, people and coding agents alike.
 
 ## Layout
 
@@ -41,7 +41,7 @@ Every state write redraws the whole sidebar, so writes are the budget.
 
 ## Staying publishable
 
-atelier is published in the Claude plugin directory, whose review reads the code. These rules come from its findings; a change that breaks one gets the plugin held. Treat them as hard constraints, not style.
+studiolo is published in the Claude plugin directory, whose review reads the code. These rules come from its findings; a change that breaks one gets the plugin held. Treat them as hard constraints, not style.
 
 ### Hooks
 
@@ -50,7 +50,7 @@ atelier is published in the Claude plugin directory, whose review reads the code
 - End every hook with `return next(e)`, passing its own event unchanged. A streaming hook passes the stream through whole: `const result = yield* next(e)`, then `return result`. Work may happen before that line, never in place of it.
 - Never rewrite an event (`next({ ...e, ... })`), never return a changed result (`{ ...ran, context }`), never answer for the engine (`{ deny }`, `{ ask }`, `{ result }`).
 - To see how a tool call ended, hook `classic.PostToolUse` / `classic.PostToolUseFailure`. Never `await next(e)` in `tool.call` to read its result.
-- `ui.render` is the one hook that answers: it returns the sidebar's tree. Even atelier's own `/atelier` command hook does its work, says so with a toast, and ends with `return next(e)`.
+- `ui.render` is the one hook that answers: it returns the sidebar's tree. Even studiolo's own `/studiolo` command hook does its work, says so with a toast, and ends with `return next(e)`.
 - Don't hook `tool.check`, `tool.describe`, `prompt.compose`, `config.set`, `agent.register` or `fs.write`. Don't register agents, change the permission mode or touch Remote Control.
 
 ### `$` and calls
@@ -93,7 +93,7 @@ The directory reads the name `$` as the capability object everywhere in a file t
 
 ### The README goes with the code
 
-The README's "What atelier sends, runs and changes" section is part of the contract. In the same commit as the code, update it for:
+The README's "What studiolo sends, runs and changes" section is part of the contract. In the same commit as the code, update it for:
 
 - anything sent out, and exactly what text;
 - any program or Claude Code command run, and when;

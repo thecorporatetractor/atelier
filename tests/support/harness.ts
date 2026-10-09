@@ -13,7 +13,7 @@ export const BURNED = 1000 + 200
 
 export type Harness = {
   clock: ReturnType<typeof mock.clock>
-  /** What the mod wrote under `atelier.<key>`, as plain data. */
+  /** What the mod wrote under `studiolo.<key>`, as plain data. */
   state: <T = unknown>(key: string) => T | undefined
   /** What the mod wrote to its store. */
   store: <T = unknown>(key: string) => T | undefined
@@ -78,7 +78,7 @@ export function harness(on: On, init: { store?: Record<string, unknown>; now?: n
 
   return {
     clock,
-    state: <T>(k: string) => copy(state.get(`atelier.${k}`)?.value) as T | undefined,
+    state: <T>(k: string) => copy(state.get(`studiolo.${k}`)?.value) as T | undefined,
     store: <T>(k: string) => copy(store.get(k)) as T | undefined,
     listed,
   }

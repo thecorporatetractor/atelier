@@ -1,6 +1,6 @@
-# 🎨 atelier
+# 🎨 studiolo
 
-**A workspace for working with Claude Code.** An atelier is the studio where a master works with apprentices at one bench; this one puts you and your agents there. It starts as a live sidebar that shows what Claude is doing while it works: the plan and how far along it is, which agents are running, what the context window holds, what each turn costs, and the choices Claude made along the way.
+**A workspace for working with Claude Code.** A studiolo is the small study where Renaissance scholars kept their work close at hand; this one keeps you and your agents in one room. It starts as a live sidebar that shows what Claude is doing while it works: the plan and how far along it is, which agents are running, what the context window holds, what each turn costs, and the choices Claude made along the way.
 
 ```text
 ◉ Working  1m 12s                       main / opus-5-5
@@ -64,10 +64,10 @@
 At the prompt of a Claude Code terminal session:
 
 ```text
-/plugin install atelier --marketplace thecorporatetractor/atelier
+/plugin install studiolo --marketplace thecorporatetractor/studiolo
 ```
 
-Answer `y` to add the marketplace, pick a scope, and the sidebar is live. It opens on its own when the terminal is wide enough (144 columns), or any time with `/atelier`. The fullscreen layout docks it to the right of the transcript.
+Answer `y` to add the marketplace, pick a scope, and the sidebar is live. It opens on its own when the terminal is wide enough (144 columns), or any time with `/studiolo`. The fullscreen layout docks it to the right of the transcript.
 
 ## ⌨️ Keys and commands
 
@@ -86,15 +86,15 @@ Keys work while the sidebar has focus (`ctrl+x tab` or a click).
 
 | Command | Does |
 | --- | --- |
-| `/atelier` | Open the sidebar, sized to 35% of the terminal |
-| `/atelier close` | Close it |
-| `/atelier compact` | One-line mode |
-| `/atelier stats` | Open the stats screen |
-| `/atelier search <words>` | Search past sessions' summaries and tasks |
+| `/studiolo` | Open the sidebar, sized to 35% of the terminal |
+| `/studiolo close` | Close it |
+| `/studiolo compact` | One-line mode |
+| `/studiolo stats` | Open the stats screen |
+| `/studiolo search <words>` | Search past sessions' summaries and tasks |
 
 ## ⚙️ Settings
 
-All of them live in `/config` under atelier.
+All of them live in `/config` under studiolo.
 
 | Setting | Default | |
 | --- | --- | --- |
@@ -105,13 +105,13 @@ All of them live in `/config` under atelier.
 | Test command | `npm test` | What `t` runs: one of `npm test`, `pnpm test`, `yarn test`, `bun test`, `make test`, `pytest`, `cargo test`, `go test` |
 | Start compact | off | Open in one-line mode |
 
-## 🔒 What atelier sends, runs and changes
+## 🔒 What studiolo sends, runs and changes
 
-atelier is meant to be watched, not trusted blindly, so here is everything it does outside its own sidebar.
+studiolo is meant to be watched, not trusted blindly, so here is everything it does outside its own sidebar.
 
 ### What it sends, and where
 
-Only one thing leaves your machine: small model calls to **Haiku** (or the observer model you pick), made through Claude Code's own `$.model.complete` and `$.model.classify` calls. They go to the same API, account and provider your session already uses; atelier holds no key and opens no other connection. They run only while the **Observer** setting is on, which it is by default; switch it off in `/config` and atelier sends nothing at all.
+Only one thing leaves your machine: small model calls to **Haiku** (or the observer model you pick), made through Claude Code's own `$.model.complete` and `$.model.classify` calls. They go to the same API, account and provider your session already uses; studiolo holds no key and opens no other connection. They run only while the **Observer** setting is on, which it is by default; switch it off in `/config` and studiolo sends nothing at all.
 
 | When | What is sent |
 | --- | --- |
@@ -128,7 +128,7 @@ Every call's tokens are counted in the Agents section and on the stats screen.
 | Program | When |
 | --- | --- |
 | Your test runner: `npm test`, `pnpm test`, `yarn test`, `bun test`, `make test`, `pytest`, `cargo test` or `go test ./...`, the one picked in `/config` | Only when you press `t`, in the project folder. It is started by name with those fixed arguments, never through a shell |
-| `git add -A`, then `git commit -m "checkpoint (atelier)"` | Only when you press `k` and confirm the question, in the project folder |
+| `git add -A`, then `git commit -m "checkpoint (studiolo)"` | Only when you press `k` and confirm the question, in the project folder |
 
 Each call is written out in full as fixed text: the program, its arguments and the time limit. It runs in the session's own folder, which is where Claude Code runs programs by default. No program gets anything from the session: not your prompts, not the conversation, not the session id or usage figures. Their output is only shown in the sidebar (pass or fail, and the first 80 characters of an error).
 
@@ -136,7 +136,7 @@ It also runs one Claude Code command: `/diff`, with no arguments, only when you 
 
 ### What it puts in Claude's prompts
 
-atelier submits a prompt only when you press a button for it, and the prompt holds only the text below. It never puts the session id, usage figures, the project folder or anything else it reads about the session into a prompt:
+studiolo submits a prompt only when you press a button for it, and the prompt holds only the text below. It never puts the session id, usage figures, the project folder or anything else it reads about the session into a prompt:
 
 | You press | Claude receives |
 | --- | --- |
@@ -146,9 +146,9 @@ atelier submits a prompt only when you press a button for it, and the prompt hol
 
 ### What its hooks do
 
-None of atelier's hooks change or answer what they see: each one notes the event and passes it on unchanged, so Claude reads exactly what it would without atelier.
+None of studiolo's hooks change or answer what they see: each one notes the event and passes it on unchanged, so Claude reads exactly what it would without studiolo.
 
-| Hook | What atelier notes |
+| Hook | What studiolo notes |
 | --- | --- |
 | `tool.call`, `PostToolUse`, `PostToolUseFailure` | Each tool call and how it ended: the activity feed, files and line counts, test results, repeated failures |
 | `turn.step` | The tokens each model response used (the response itself streams through untouched) |
@@ -158,17 +158,17 @@ None of atelier's hooks change or answer what they see: each one notes the event
 | `PermissionRequest`, `Notification` | That Claude is waiting on you, to show a banner and a toast. The `PermissionRequest` hook decides nothing: it never allows, denies or asks, and passes the request on unchanged, so the choice stays yours |
 | `session.start`, `session.end` | Setting up the sidebar, and saving the day's figures |
 | `ui.render` | Drawing the sidebar |
-| `command.run` | Answering atelier's own `/atelier` command, and no other |
+| `command.run` | Answering studiolo's own `/studiolo` command, and no other |
 
 Two buttons act on the session itself: `^C stop` cancels the running turn, and `c` compacts the conversation, the same as `/compact`.
 
 ### What it reads
 
-atelier reads no credentials, tokens or keys, and no environment or files of yours. The only web address in its code is the SVG namespace `http://www.w3.org/2000/svg`, a fixed identifier written into the drawing for the desktop app; nothing ever connects to it. Where the code says "tokens", it means token counts of model usage.
+studiolo reads no credentials, tokens or keys, and no environment or files of yours. The only web address in its code is the SVG namespace `http://www.w3.org/2000/svg`, a fixed identifier written into the drawing for the desktop app; nothing ever connects to it. Where the code says "tokens", it means token counts of model usage.
 
 ### What it keeps
 
-Everything atelier remembers stays on your machine, in its own plugin store: daily usage totals for the stats screen (the last 120 days), short summaries of past sessions for `/atelier search` (the last 40), your view choices, and the progress of your other open sessions for the "other sessions" line. It reads the session's id, project folder, model name and usage figures from Claude Code to fill those in.
+Everything studiolo remembers stays on your machine, in its own plugin store: daily usage totals for the stats screen (the last 120 days), short summaries of past sessions for `/studiolo search` (the last 40), your view choices, and the progress of your other open sessions for the "other sessions" line. It reads the session's id, project folder, model name and usage figures from Claude Code to fill those in.
 
 ## 🖥 Where it draws
 
@@ -177,12 +177,12 @@ In the terminal it draws with text glyphs. In the desktop app's Code tab, VS Cod
 ## 🛠 Working on it
 
 ```sh
-git clone git@github.com:thecorporatetractor/atelier.git
-cd atelier
+git clone git@github.com:thecorporatetractor/studiolo.git
+cd studiolo
 claude --plugin-dir ./plugin   # the plugin itself lives in plugin/
 ./scripts/check                # type-check, validate, and run the tests
 ```
 
-The tests and tools live outside `plugin/`, so only the plugin ships. Conventions for people and agents working on the code are in [AGENTS.md](https://github.com/thecorporatetractor/atelier/blob/main/AGENTS.md).
+The tests and tools live outside `plugin/`, so only the plugin ships. Conventions for people and agents working on the code are in [AGENTS.md](https://github.com/thecorporatetractor/studiolo/blob/main/AGENTS.md).
 
-> atelier is built on Claude Code's function-hooks plugin API, which is in early access and changes between releases. If something stops drawing after an update, `claude --debug` says why.
+> studiolo is built on Claude Code's function-hooks plugin API, which is in early access and changes between releases. If something stops drawing after an update, `claude --debug` says why.

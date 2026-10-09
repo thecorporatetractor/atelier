@@ -88,8 +88,8 @@ import { drawSidebar } from './view'
 // The Stats screen's range (`r` cycles it): a drawing choice, this load's only.
 let statsRange: RangeKey = 'today'
 
-const PANE = 'atelier'
-const TITLE = 'Atelier'
+const PANE = 'studiolo'
+const TITLE = 'Studiolo'
 const SHARE = 0.35
 // The frame's left and right edges sit outside the body columns.
 const FRAME = 2
@@ -105,7 +105,7 @@ const SPEND_DAYS = 62
 
 // The sidebar's state: each value read and written through $.state with
 // its literal reference, the way the directory's review reads the code.
-type Held = PluginState['atelier']
+type Held = PluginState['studiolo']
 // One name per value, so no signature below needs an indexed type.
 type TimelineKind = TimelineEntry['kind']
 type HeldAgentRates = Held['agentRates']
@@ -171,91 +171,91 @@ function emptyCache(): HeldCache {
   return { lastHitAt: null, ttlMs: CACHE_TTL_MS, readTokens: 0, inputTokens: 0 }
 }
 
-const TASKS = { plugin: 'atelier', key: 'tasks' } as const
+const TASKS = { plugin: 'studiolo', key: 'tasks' } as const
 
 
 
-const ROOT = { plugin: 'atelier', key: 'rootId' } as const
+const ROOT = { plugin: 'studiolo', key: 'rootId' } as const
 
 
 
-const AGENTS = { plugin: 'atelier', key: 'agents' } as const
+const AGENTS = { plugin: 'studiolo', key: 'agents' } as const
 
 
 
-const USAGE = { plugin: 'atelier', key: 'usage' } as const
+const USAGE = { plugin: 'studiolo', key: 'usage' } as const
 
 
 
-const FEED = { plugin: 'atelier', key: 'feed' } as const
+const FEED = { plugin: 'studiolo', key: 'feed' } as const
 
 
 
-const CURRENT = { plugin: 'atelier', key: 'current' } as const
+const CURRENT = { plugin: 'studiolo', key: 'current' } as const
 
 
 
-const FILES = { plugin: 'atelier', key: 'files' } as const
+const FILES = { plugin: 'studiolo', key: 'files' } as const
 
 
 
-const ALERTS = { plugin: 'atelier', key: 'alerts' } as const
+const ALERTS = { plugin: 'studiolo', key: 'alerts' } as const
 
 
 
-const VIEW = { plugin: 'atelier', key: 'view' } as const
+const VIEW = { plugin: 'studiolo', key: 'view' } as const
 
 
 
-const OBSERVER = { plugin: 'atelier', key: 'observer' } as const
+const OBSERVER = { plugin: 'studiolo', key: 'observer' } as const
 
 
 
-const TIMELINE = { plugin: 'atelier', key: 'timeline' } as const
+const TIMELINE = { plugin: 'studiolo', key: 'timeline' } as const
 
 
 
-const CONFIDENCE = { plugin: 'atelier', key: 'confidence' } as const
+const CONFIDENCE = { plugin: 'studiolo', key: 'confidence' } as const
 
 
 
-const PEERS = { plugin: 'atelier', key: 'peers' } as const
+const PEERS = { plugin: 'studiolo', key: 'peers' } as const
 
 
 
-const HANDOFF = { plugin: 'atelier', key: 'handoff' } as const
+const HANDOFF = { plugin: 'studiolo', key: 'handoff' } as const
 
 
 
-const SEARCH = { plugin: 'atelier', key: 'search' } as const
+const SEARCH = { plugin: 'studiolo', key: 'search' } as const
 
 
 
-const DECISIONS = { plugin: 'atelier', key: 'decisions' } as const
+const DECISIONS = { plugin: 'studiolo', key: 'decisions' } as const
 
 
 
-const RATE = { plugin: 'atelier', key: 'rate' } as const
+const RATE = { plugin: 'studiolo', key: 'rate' } as const
 
 
 
-const CACHE = { plugin: 'atelier', key: 'cache' } as const
+const CACHE = { plugin: 'studiolo', key: 'cache' } as const
 
 
 
-const CONTEXT = { plugin: 'atelier', key: 'context' } as const
+const CONTEXT = { plugin: 'studiolo', key: 'context' } as const
 
 
 
-const SPEND = { plugin: 'atelier', key: 'spend' } as const
+const SPEND = { plugin: 'studiolo', key: 'spend' } as const
 
 
 
-const STATS = { plugin: 'atelier', key: 'stats' } as const
+const STATS = { plugin: 'studiolo', key: 'stats' } as const
 
 
 
-const AGENT_RATES = { plugin: 'atelier', key: 'agentRates' } as const
+const AGENT_RATES = { plugin: 'studiolo', key: 'agentRates' } as const
 
 
 
@@ -775,7 +775,7 @@ async function attention($: EngineInterface, text: string) {
     if (written.isSet) break
   }
   await setTasks($, (list, rootId) => list.map(t => (t.id === rootId && t.status === 'running' ? { ...t, status: 'waiting' as const } : t)))
-  $.ui.toast(('Atelier: ' + String(text)))
+  $.ui.toast(('Studiolo: ' + String(text)))
 }
 
 async function clearAttention($: EngineInterface) {
@@ -940,7 +940,7 @@ async function recordSpin($: EngineInterface, signature: string, isFailed: boole
     }
   }
   if (warning !== undefined && r.count === 3) {
-    $.ui.toast(('Atelier: ' + String(warning)))
+    $.ui.toast(('Studiolo: ' + String(warning)))
     await addTimeline($, 'alert', (String(warning) + ': ' + String(text)))
   }
 }
@@ -949,7 +949,7 @@ async function recordSpin($: EngineInterface, signature: string, isFailed: boole
 
 async function interrupt($: EngineInterface) {
   if (turnId === undefined) {
-    $.ui.toast('Atelier: no turn is running')
+    $.ui.toast('Studiolo: no turn is running')
 
     return
   }
@@ -959,15 +959,15 @@ async function interrupt($: EngineInterface) {
 async function compactNow($: EngineInterface) {
   try {
     const r = await $.session.compact({})
-    $.ui.toast(r.skip === undefined ? 'Atelier: compacted' : 'Atelier: compaction skipped')
+    $.ui.toast(r.skip === undefined ? 'Studiolo: compacted' : 'Studiolo: compaction skipped')
   } catch {
-    $.ui.toast('Atelier: compact only between turns')
+    $.ui.toast('Studiolo: compact only between turns')
   }
 }
 
 async function runTests($: EngineInterface) {
   const id = rid('f')
-  await pushFeed($, { id, at: nowMs(), text: ('Running ' + String(opt.testCommand)), tool: 'atelier', state: 'running' })
+  await pushFeed($, { id, at: nowMs(), text: ('Running ' + String(opt.testCommand)), tool: 'studiolo', state: 'running' })
   // One of a fixed set of runners, each started by name with fixed arguments,
   // in the session's folder (process.run's default).
   let r: ProcessRunResult
@@ -999,7 +999,7 @@ async function runTests($: EngineInterface) {
   const isOk = r.exitCode === 0
   await editFeed($, list => list.map(f => (f.id === id ? { ...f, state: isOk ? ('ok' as const) : ('error' as const), text: ('Tests ' + String(isOk ? 'passed' : ('failed (' + String(r.exitCode) + ')'))) } : f)))
   await recordVerify($, opt.testCommand, isOk)
-  $.ui.toast(('Atelier: tests ' + String(isOk ? 'passed' : 'failed')))
+  $.ui.toast(('Studiolo: tests ' + String(isOk ? 'passed' : 'failed')))
 }
 
 
@@ -1007,8 +1007,8 @@ async function commitCheckpoint($: EngineInterface) {
   const answer = await $.ui.ask('Stage every change (git add -A) and commit a checkpoint?', ['Commit', 'Cancel'])
   if (answer !== 'Commit') return
   const add = await $.process.run(['git', 'add', '-A'])
-  const r = add.exitCode === 0 ? await $.process.run(['git', 'commit', '-m', 'checkpoint (atelier)']) : add
-  $.ui.toast(r.exitCode === 0 ? 'Atelier: checkpoint committed' : ('Atelier: commit failed: ' + String((r.stderr || r.stdout).slice(0, 80))))
+  const r = add.exitCode === 0 ? await $.process.run(['git', 'commit', '-m', 'checkpoint (studiolo)']) : add
+  $.ui.toast(r.exitCode === 0 ? 'Studiolo: checkpoint committed' : ('Studiolo: commit failed: ' + String((r.stderr || r.stdout).slice(0, 80))))
 }
 
 async function sendNote($: EngineInterface, text: string) {
@@ -1026,7 +1026,7 @@ async function openDiff($: EngineInterface, path: string) {
   try {
     await $.command.run({ command: 'diff' })
   } catch {
-    $.ui.toast(('Atelier: run /diff to see the changes to ' + String(basename(path))))
+    $.ui.toast(('Studiolo: run /diff to see the changes to ' + String(basename(path))))
   }
 }
 
@@ -1443,10 +1443,10 @@ async function refreshContext($: EngineInterface, plain?: { tokens?: number; win
       split = { used: b.totalTokens, window: b.rawMaxTokens, threshold: b.isAutoCompactEnabled ? b.autoCompactThreshold : undefined, system, tools, chat, isEstimate: false }
     } else {
       plain = plain ?? u.context
-      debugLog($, 'atelier: session.usage answered without a context breakdown; the heatmap is an estimate')
+      debugLog($, 'studiolo: session.usage answered without a context breakdown; the heatmap is an estimate')
     }
   } catch (err) {
-    debugLog($, ('atelier: session.usage({ breakdown }) failed: ' + String(String(err).slice(0, 200)) + '; the heatmap is an estimate'))
+    debugLog($, ('studiolo: session.usage({ breakdown }) failed: ' + String(String(err).slice(0, 200)) + '; the heatmap is an estimate'))
   }
   if (split === undefined) {
     const uHeld = await $.state.get(USAGE)
@@ -1763,13 +1763,13 @@ async function endCall($: EngineInterface, toolUseId: string, isFailed: boolean,
   scheduleFlush($)
 }
 
-// ---------- /atelier ----------
+// ---------- /studiolo ----------
 
-async function runAtelierCommand($: EngineInterface, args: string, columns: number) {
+async function runStudioloCommand($: EngineInterface, args: string, columns: number) {
   const [verb = '', ...rest] = args.trim().split(/\s+/)
   if (verb === 'close') {
     await $.ui.close({ id: PANE })
-    $.ui.toast('Atelier closed')
+    $.ui.toast('Studiolo closed')
 
     return
   }
@@ -1794,7 +1794,7 @@ async function runAtelierCommand($: EngineInterface, args: string, columns: numb
   if (verb === 'search') {
     const query = rest.join(' ')
     if (query === '') {
-      $.ui.toast('Atelier: /atelier search <words>')
+      $.ui.toast('Studiolo: /studiolo search <words>')
 
       return
     }
@@ -1803,7 +1803,7 @@ async function runAtelierCommand($: EngineInterface, args: string, columns: numb
     await open($, columns)
     const foundHeld = await $.state.get(SEARCH)
     const hits = foundHeld.value?.hits ?? []
-    $.ui.toast(hits.length === 0 ? ('Atelier: no matches for "' + String(query) + '"') : ('Atelier: ' + String(hits.length) + ' match' + String(hits.length === 1 ? '' : 'es') + ' in the sidebar'))
+    $.ui.toast(hits.length === 0 ? ('Studiolo: no matches for "' + String(query) + '"') : ('Studiolo: ' + String(hits.length) + ' match' + String(hits.length === 1 ? '' : 'es') + ' in the sidebar'))
 
     return
   }
@@ -1831,7 +1831,7 @@ export const register: Register = (on, options) => {
 
   on('session.start', async ($, e, next) => {
     await $.command.register({
-      name: 'atelier',
+      name: 'studiolo',
       description: 'Sidebar: open, close, compact, stats, or search <query>',
     })
     sessionId = await $.session.id()
@@ -1848,7 +1848,7 @@ export const register: Register = (on, options) => {
         void quietly(flushStats($))
       })
     }
-    const view = await $.state.get({ plugin: 'atelier', key: 'view' })
+    const view = await $.state.get({ plugin: 'studiolo', key: 'view' })
     if (view.version === 0 && opt.isCompactDefault) {
       for (;;) {
         const change: (value: HeldView) => HeldView = v => ({ ...v, isCompact: true })
@@ -2096,9 +2096,9 @@ export const register: Register = (on, options) => {
     return next(e)
   })
 
-  // Does what /atelier asks, says so in a toast, and passes the command on.
-  on('command.run', { command: 'atelier' }, async ($, e, next) => {
-    await runAtelierCommand($, e.args, e.presentation.columns)
+  // Does what /studiolo asks, says so in a toast, and passes the command on.
+  on('command.run', { command: 'studiolo' }, async ($, e, next) => {
+    await runStudioloCommand($, e.args, e.presentation.columns)
 
     return next(e)
   })
@@ -2108,7 +2108,7 @@ export const register: Register = (on, options) => {
     const terminal = e.viewport?.columns
     // Sized once from the first docked draw. Resizing on every draw looped:
     // the dock's own width changes the viewport it is measured from, so each
-    // request moved the next measurement (flicker). /atelier re-sizes it
+    // request moved the next measurement (flicker). /studiolo re-sizes it
     // from the terminal's true width.
     if (terminal !== undefined && e.props.placement === 'dock' && asked === undefined) {
       void quietly(open($, terminal))

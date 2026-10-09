@@ -1,7 +1,7 @@
 import { expect, mock, test } from 'claude-code/testing'
 
 const PROPS = {
-  title: 'Atelier',
+  title: 'Studiolo',
   isFocused: false,
   bodyColumns: 52,
   placement: 'dock' as const,
@@ -37,7 +37,7 @@ test('the decisions pass runs once things go quiet and fills the Decisions secti
   await clock.advance(5_500)
   expect(asked).toHaveLength(1)
   expect(asked[0]).toContain('Person said: Fix the flicker')
-  const ui = await $.ui.mount({ plugin: 'atelier', surface: 'terminal', component: 'Pane', requestId: 'atelier', props: PROPS })
+  const ui = await $.ui.mount({ plugin: 'studiolo', surface: 'terminal', component: 'Pane', requestId: 'studiolo', props: PROPS })
   expect(await ui.find({ type: 'Text', text: /Approach/ })).toBeDefined()
   await ui.unmount()
 })

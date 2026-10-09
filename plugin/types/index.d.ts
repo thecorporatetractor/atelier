@@ -233,7 +233,7 @@ export type SearchHit = { at: number; text: string; source: string }
 
 declare module 'claude-code' {
   interface PluginState {
-    atelier: {
+    studiolo: {
       tasks: Task[]
       rootId: string | null
       agents: AgentNode[]

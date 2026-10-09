@@ -363,7 +363,7 @@ export function drawSidebar(els: Els, d: SidebarData, act: SidebarActions): Rend
     const live = d.decisions.filter(x => x.isReverted !== true)
 
     return (
-      <Box key="atelier" flexDirection="column">
+      <Box key="studiolo" flexDirection="column">
         <Svg key="svg" source={drawSvg(d)} alt={svgAlt(d)} isInteractive />
         <Box key="svg-controls" flexDirection="row" flexWrap="wrap" columnGap={2}>
           {detailToggle}
@@ -836,7 +836,7 @@ export function drawSidebar(els: Els, d: SidebarData, act: SidebarActions): Rend
     })
 
     return (
-      <Box key="atelier" flexDirection="column" width={W} minHeight={d.rows}>
+      <Box key="studiolo" flexDirection="column" width={W} minHeight={d.rows}>
         {status}
         {gap()}
         {drawn}
@@ -851,7 +851,7 @@ export function drawSidebar(els: Els, d: SidebarData, act: SidebarActions): Rend
   // ---------- 4b: the decisions screen alone ----------
   if (isDetail) {
     return (
-      <Box key="atelier" flexDirection="column" width={W} minHeight={d.rows}>
+      <Box key="studiolo" flexDirection="column" width={W} minHeight={d.rows}>
         {status}
         {banners.length > 0 && gap()}
         {banners}
@@ -1245,7 +1245,7 @@ export function drawSidebar(els: Els, d: SidebarData, act: SidebarActions): Rend
   }
 
   return (
-    <Box key="atelier" flexDirection="column" width={W} minHeight={d.rows}>
+    <Box key="studiolo" flexDirection="column" width={W} minHeight={d.rows}>
       {status}
       {banners.length > 0 && gap()}
       {banners}

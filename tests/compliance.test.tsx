@@ -6,7 +6,7 @@ import type { AgentNode, Task } from '../types'
 import { harness, ROOT } from './support/harness'
 
 const PROPS = {
-  title: 'Atelier',
+  title: 'Studiolo',
   isFocused: false,
   bodyColumns: 52,
   placement: 'dock' as const,
@@ -48,7 +48,7 @@ describe('compliance', () => {
         return { value: { exitCode: 0, stdout: '', stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }
       })
       await $.session.start({ cwd: ROOT, surface: 'terminal', isInteractive: true })
-      const ui = await $.ui.mount({ plugin: 'atelier', surface: 'terminal', component: 'Pane', requestId: 'atelier', props: PROPS })
+      const ui = await $.ui.mount({ plugin: 'studiolo', surface: 'terminal', component: 'Pane', requestId: 'studiolo', props: PROPS })
       await ui.press({ key: 'tests' })
       await h.clock.advance(10)
       expect(ran).toEqual([argv])
@@ -66,7 +66,7 @@ describe('compliance', () => {
       return { value: { exitCode: 0, stdout: '', stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }
     })
     await $.session.start({ cwd: ROOT, surface: 'terminal', isInteractive: true })
-    const ui = await $.ui.mount({ plugin: 'atelier', surface: 'terminal', component: 'Pane', requestId: 'atelier', props: PROPS })
+    const ui = await $.ui.mount({ plugin: 'studiolo', surface: 'terminal', component: 'Pane', requestId: 'studiolo', props: PROPS })
     await ui.press({ key: 'tests' })
     await h.clock.advance(10)
     expect(ran).toEqual([['npm', 'test']])
@@ -95,7 +95,7 @@ describe('compliance', () => {
     expect(h.state<Task[]>('tasks')?.find(t => t.agentId === 'a1')?.title).toBe('Map the code')
   })
 
-  test('/atelier does its work, then passes the command on unchanged', { options: { observer: false } }, async ($, on) => {
+  test('/studiolo does its work, then passes the command on unchanged', { options: { observer: false } }, async ($, on) => {
     harness(on)
     let passed: unknown
     on('command.run', (_, e) => {
@@ -104,8 +104,8 @@ describe('compliance', () => {
       return {}
     })
     await $.session.start({ cwd: ROOT, surface: 'terminal', isInteractive: true })
-    await $.command.run({ command: 'atelier', args: 'compact', origin: { kind: 'composer' }, presentation: { isFullscreen: true, columns: 160 } })
-    expect((passed as { command: string; args: string }).command).toBe('atelier')
+    await $.command.run({ command: 'studiolo', args: 'compact', origin: { kind: 'composer' }, presentation: { isFullscreen: true, columns: 160 } })
+    expect((passed as { command: string; args: string }).command).toBe('studiolo')
     expect((passed as { args: string }).args).toBe('compact')
   })
 })

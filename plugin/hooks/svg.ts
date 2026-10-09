@@ -586,5 +586,5 @@ export function svgAlt(d: SidebarData) {
   const state = d.isWorking ? 'working' : d.runningAgents > 0 ? `${d.runningAgents} agents working` : 'idle'
   const pct = d.usage?.percent
 
-  return `Atelier: ${state}; ${d.root?.title ?? 'no task'}; context ${pct === undefined ? '–' : `${pct}%`}`
+  return `Studiolo: ${state}; ${d.root?.title ?? 'no task'}; context ${pct === undefined ? '–' : `${pct}%`}`
 }

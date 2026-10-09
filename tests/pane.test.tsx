@@ -3,7 +3,7 @@ import { expect, mock, test } from 'claude-code/testing'
 import { tools } from './support/harness'
 
 const PROPS = {
-  title: 'Atelier',
+  title: 'Studiolo',
   isFocused: false,
   bodyColumns: 52,
   placement: 'dock' as const,
@@ -40,7 +40,7 @@ test('the terminal draws the sections as text; the remote surfaces an Svg with n
   on('session.usage', () => ({ value: { startedAt: 900_000, context: { tokens: 50_000, window: 200_000, percent: 25 }, rateLimits: [] } }))
   await $.turn.complete({ turnId: 't1', answer: 'done', durationMs: 4000, isAborted: false, reason: 'answer', usage: USAGE })
   for (const surface of ['terminal', 'desktop', 'vscode', 'mobile'] as const) {
-    const ui = await $.ui.mount({ plugin: 'atelier', surface, component: 'Pane', requestId: 'atelier', props: PROPS })
+    const ui = await $.ui.mount({ plugin: 'studiolo', surface, component: 'Pane', requestId: 'studiolo', props: PROPS })
     if (surface === 'terminal') {
       for (const name of [/^Context$/, /^Usage$/, /^Decisions$/, /^Agents$/, /^Activity$/, /^Files$/, /^Timeline$/]) {
         expect(await ui.find({ type: 'Text', text: name })).toBeDefined()
@@ -90,7 +90,7 @@ test('Activity keeps at least eight past items', { options: { observer: false } 
   await tool.end($)
   // The feed is published in batches, at most every second.
   await clock.advance(1100)
-  const ui = await $.ui.mount({ plugin: 'atelier', surface: 'terminal', component: 'Pane', requestId: 'atelier', props: PROPS })
+  const ui = await $.ui.mount({ plugin: 'studiolo', surface: 'terminal', component: 'Pane', requestId: 'studiolo', props: PROPS })
   const shown = await ui.findAll({ type: 'Text', text: /\$ echo step\d+/ })
   expect(shown.length).toBeGreaterThanOrEqual(8)
   await ui.unmount()
@@ -105,7 +105,7 @@ test('failing tool calls reach the feed and a spin loop warns', { options: { obs
     await tool.end($)
   }
   await clock.advance(1100)
-  const ui = await $.ui.mount({ plugin: 'atelier', surface: 'terminal', component: 'Pane', requestId: 'atelier', props: PROPS })
+  const ui = await $.ui.mount({ plugin: 'studiolo', surface: 'terminal', component: 'Pane', requestId: 'studiolo', props: PROPS })
   expect(await ui.find({ type: 'Text', text: /retried this 3 times/ })).toBeDefined()
   // Three identical calls fold into one Activity line with a count.
   expect(await ui.find({ type: 'Text', text: /\$ npm run flaky/ })).toBeDefined()
@@ -117,7 +117,7 @@ test('d switches the whole sidebar to the decisions screen and back', { options:
   mock.clock(on, { now: 1_000_000 })
   mock.store(on)
   for (const surface of ['terminal', 'desktop'] as const) {
-    const ui = await $.ui.mount({ plugin: 'atelier', surface, component: 'Pane', requestId: 'atelier', props: PROPS })
+    const ui = await $.ui.mount({ plugin: 'studiolo', surface, component: 'Pane', requestId: 'studiolo', props: PROPS })
     const headerShown = async (name: string) => {
       if (surface === 'terminal') return (await ui.find({ type: 'Text', text: new RegExp(`^${name}$`) })) !== undefined
 
@@ -141,7 +141,7 @@ test('d switches the whole sidebar to the decisions screen and back', { options:
 test('s switches to the stats screen, which says it is collecting until figures come', { options: { observer: false } }, async ($, on) => {
   mock.clock(on, { now: 1_000_000 })
   mock.store(on)
-  const ui = await $.ui.mount({ plugin: 'atelier', surface: 'terminal', component: 'Pane', requestId: 'atelier', props: PROPS })
+  const ui = await $.ui.mount({ plugin: 'studiolo', surface: 'terminal', component: 'Pane', requestId: 'studiolo', props: PROPS })
   await ui.press({ key: 'stats' })
   expect(await ui.find({ type: 'Text', text: /^Context$/ })).toBeUndefined()
   expect(await ui.find({ type: 'Text', text: /^Usage$/ })).toBeUndefined()
@@ -173,7 +173,7 @@ test('an edit the engine did not diff still counts its lines', { options: { obse
   await $.tool.call({ tool: 'Edit', file_path: '/p/src/a.ts', old_string: 'keep\nold', new_string: 'keep\nnew\nmore' })
   await tool.end($)
   await clock.advance(1100)
-  const ui = await $.ui.mount({ plugin: 'atelier', surface: 'terminal', component: 'Pane', requestId: 'atelier', props: PROPS })
+  const ui = await $.ui.mount({ plugin: 'studiolo', surface: 'terminal', component: 'Pane', requestId: 'studiolo', props: PROPS })
   expect(await ui.find({ type: 'Text', text: /\+2 −1/ })).toBeDefined()
   expect(await ui.find({ type: 'Text', text: /Edit \/p\/src\/a\.ts/ })).toBeDefined()
   await ui.unmount()
@@ -185,7 +185,7 @@ test('the heatmap draws from the plain figures when no breakdown comes', { optio
   on('ui.log', () => ({ value: undefined }))
   on('turn.complete', (_, e) => ({ text: e.answer }))
   await $.turn.complete({ turnId: 't1', answer: 'done', durationMs: 4000, isAborted: false, reason: 'answer', usage: USAGE })
-  const ui = await $.ui.mount({ plugin: 'atelier', surface: 'terminal', component: 'Pane', requestId: 'atelier', props: PROPS })
+  const ui = await $.ui.mount({ plugin: 'studiolo', surface: 'terminal', component: 'Pane', requestId: 'studiolo', props: PROPS })
   expect(await ui.find({ type: 'Text', text: /heatmap after the first turn/ })).toBeUndefined()
   expect(await ui.find({ type: 'Text', text: /chat 50k/ })).toBeDefined()
   expect(await ui.find({ type: 'Text', text: /est\./ })).toBeDefined()
@@ -198,7 +198,7 @@ test('the heatmap draws from the plain figures when no breakdown comes', { optio
 test("a subagent's steps count live, and its turn's end adds nothing twice", { options: { observer: false } }, async ($, on) => {
   const clock = mock.clock(on, { now: 1_000_000 })
   on('agent.spawn', () => ({ model: 'claude-test', agentId: 'a1' }))
-  // The engine lists the spawned agent; atelier's sync reads it after the spawn.
+  // The engine lists the spawned agent; studiolo's sync reads it after the spawn.
   on('agent.list', () => ({ value: [{ id: 'a1', type: 'Explore', description: 'Look around', status: 'running' as const }] }))
   on('ui.log', () => ({ value: undefined }))
   on('turn.complete', (_, e) => ({ text: e.answer }))
@@ -216,7 +216,7 @@ test("a subagent's steps count live, and its turn's end adds nothing twice", { o
   }
   await step.result
   await clock.advance(3000)
-  const ui = await $.ui.mount({ plugin: 'atelier', surface: 'terminal', component: 'Pane', requestId: 'atelier', props: PROPS })
+  const ui = await $.ui.mount({ plugin: 'studiolo', surface: 'terminal', component: 'Pane', requestId: 'studiolo', props: PROPS })
   // 1000 + 200 burned tokens on the agent's row, and a tok/s sample from its step.
   expect(await ui.find({ type: 'Text', text: /Explore.*1\.2k/ })).toBeDefined()
   // Its own chart row sits under it, scaled to its own peak.
@@ -235,14 +235,14 @@ test("a subagent's steps count live, and its turn's end adds nothing twice", { o
 test('the status block says Working while only a subagent runs', { options: { observer: false } }, async ($, on) => {
   const clock = mock.clock(on, { now: 1_000_000 })
   on('agent.spawn', () => ({ model: 'claude-test', agentId: 'a1' }))
-  // The engine lists the spawned agent; atelier's sync reads it after the spawn.
+  // The engine lists the spawned agent; studiolo's sync reads it after the spawn.
   on('agent.list', () => ({ value: [{ id: 'a1', type: 'Explore', description: 'Look around', status: 'running' as const }] }))
-  const before = await $.ui.mount({ plugin: 'atelier', surface: 'terminal', component: 'Pane', requestId: 'atelier', props: PROPS })
+  const before = await $.ui.mount({ plugin: 'studiolo', surface: 'terminal', component: 'Pane', requestId: 'studiolo', props: PROPS })
   expect(await before.find({ type: 'Text', text: /^Idle$/ })).toBeDefined()
   await before.unmount()
   await $.agent.spawn(SPAWN)
   await clock.advance(1100)
-  const ui = await $.ui.mount({ plugin: 'atelier', surface: 'terminal', component: 'Pane', requestId: 'atelier', props: PROPS })
+  const ui = await $.ui.mount({ plugin: 'studiolo', surface: 'terminal', component: 'Pane', requestId: 'studiolo', props: PROPS })
   expect(await ui.find({ type: 'Text', text: /^Working$/ })).toBeDefined()
   expect(await ui.find({ type: 'Text', text: /1 agent/ })).toBeDefined()
   await ui.unmount()

@@ -1,12 +1,12 @@
 {
-  "name": "atelier",
+  "name": "studiolo",
   "owner": {
     "name": "thecorporatetractor"
   },
-  "description": "atelier: a workspace for working with Claude Code",
+  "description": "studiolo: a workspace for working with Claude Code",
   "plugins": [
     {
-      "name": "atelier",
+      "name": "studiolo",
       "source": "./plugin"
     }
   ]
