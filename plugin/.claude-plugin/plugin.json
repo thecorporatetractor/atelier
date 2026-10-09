@@ -1,11 +1,17 @@
 {
-  "name": "atelier",
+  "name": "studiolo",
   "version": "0.2.0",
   "description": "A workspace for Claude Code: a live sidebar with tasks and progress, agents, usage, decisions and stats, kept by a Haiku observer",
   "author": {
     "name": "thecorporatetractor"
   },
   "license": "MIT",
+  "homepage": "https://github.com/thecorporatetractor/studiolo",
+  "repository": "https://github.com/thecorporatetractor/studiolo",
+  "documentationUrl": "https://github.com/thecorporatetractor/studiolo/blob/main/README.md",
+  "supportUrl": "https://github.com/thecorporatetractor/studiolo/issues",
+  "privacyPolicyUrl": "https://github.com/thecorporatetractor/studiolo/blob/main/PRIVACY.md",
+  "termsOfServiceUrl": "https://github.com/thecorporatetractor/studiolo/blob/main/TERMS.md",
   "types": "./types/index.d.ts",
   "userConfig": {
     "observer": {

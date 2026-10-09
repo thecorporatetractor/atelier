@@ -170,6 +170,10 @@ studiolo reads no credentials, tokens or keys, and no environment or files of yo
 
 Everything studiolo remembers stays on your machine, in its own plugin store: daily usage totals for the stats screen (the last 120 days), short summaries of past sessions for `/studiolo search` (the last 40), your view choices, and the progress of your other open sessions for the "other sessions" line. It reads the session's id, project folder, model name and usage figures from Claude Code to fill those in.
 
+### Privacy and terms
+
+studiolo collects nothing for its author and runs no server. The [privacy policy](https://github.com/thecorporatetractor/studiolo/blob/main/PRIVACY.md) and [terms of use](https://github.com/thecorporatetractor/studiolo/blob/main/TERMS.md) say the same in full.
+
 ## 🖥 Where it draws
 
 In the terminal it draws with text glyphs. In the desktop app's Code tab, VS Code and mobile it draws the same layout as an SVG, with real buttons beside it.
